@@ -1,0 +1,48 @@
+; CatLang Performance Benchmark
+
+fn fib(n: ia) -> ia [
+    if (n < 2) [
+        return n
+    ]
+    return fib(n - 1) + fib(n - 2)
+]
+
+[main
+    print("=== CatLang Benchmark ===\n\n")
+
+    new t<timer> = Timer.init()
+
+    ; Test 1: Simple loop (100 million iterations)
+    print("Running loop test...\n")
+    t.start()
+    new i<ia> = 0
+    while (i < 100000000) [
+        i = i + 1
+    ]
+    t.stop()
+    print("Loop iterations: 100000000\n")
+    print("Time: {} ms\n\n", t.ms())
+
+    ; Test 2: Accumulation (10 million iterations)
+    print("Running accumulation test...\n")
+    t.start()
+    new result<ia> = 0
+    new j<ia> = 0
+    while (j < 10000000) [
+        j = j + 1
+        result = result + j
+    ]
+    t.stop()
+    print("Accumulation result: 50000005000000\n")
+    print("Time: {} ms\n\n", t.ms())
+
+    ; Test 3: Fibonacci (recursive, n=30)
+    print("Running fibonacci test...\n")
+    t.start()
+    new fib_result<ia> = fib(30)
+    t.stop()
+    print("Fib(30): {}\n", fib_result)
+    print("Time: {} ms\n\n", t.ms())
+
+    print("=== Benchmark Complete ===\n")
+]
