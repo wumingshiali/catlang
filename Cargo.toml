@@ -1,0 +1,17 @@
+[package]
+name = "catlang"
+version = "0.1.0"
+edition = "2021"
+description = "A CatLang to Zig compiler"
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+codespan-reporting = "0.11"
+
+[[bin]]
+name = "catc"
+path = "src/main.rs"
+
+[lib]
+name = "catlang"
+path = "src/lib.rs"

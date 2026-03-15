@@ -1,0 +1,39 @@
+# Rust/Cargo
+/target/
+**/*.pdb
+**/*.rlib
+**/*.rmeta
+Cargo.lock
+
+# Compiled CatLang files
+**/*.catc.exe
+**/*.zig
+**/*.obj
+**/*.ilk
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test output
+test/*.exe
+test/*.zig
+benchmark/*.exe
+benchmark/*.zig
+
+# Debug builds
+**/Debug/
+**/Release/

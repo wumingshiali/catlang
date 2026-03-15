@@ -1,0 +1,465 @@
+此语法可能和实际语法不同，如果要想学习CatLang，建议阅读guides文件夹
+
+
+
+
+
+1. 核心设计原则
+
+*   零样板 (Zero Boilerplate)：所有标准库功能（IO, 并发原语，错误类型）由编译器隐式注入全局作用域，无需导入。
+*   按需导入 (On-Demand Import)：仅当使用第三方库时，才使用 Python 风格的 import。
+*   安全与控制的平衡：通过 unsafe 修饰符和 m+Type 提供底层控制，默认情况下保证内存安全。
+*   语法辨识度：代码块使用方括号 []，注释使用分号 ;。
+
+2. Lexical Structure (词法结构)
+
+2.1 Identifiers (标识符)
+identifier = letter { letter | digit | '_' } ;
+letter     = 'a'..'z' | 'A'..'Z' ;
+digit      = '0'..'9' ;
+
+2.2 Literals (字面量)
+literal        = int_literal | float_literal | string_literal | bool_literal ;
+int_literal    = digit { digit } | '0x' hex_digit { hex_digit } ;
+float_literal  = digit { digit } '.' digit { digit } [ ('e'|'E') ['+'|'-'] digit { digit } ] ;
+string_literal = '"' { char | escape_sequence | interpolation } '"' ;
+bool_literal   = 'true' | 'false' ;
+hex_digit      = digit | 'a'..'f' | 'A'..'F' ;
+char           = any UTF-8 character except '"' and '\' | escape_sequence ;
+interpolation  = '{' expression '}' ; /* 字符串插值 */
+escape_sequence = '\n' | '\r' | '\t' | '\\' | '"' | '{' ;
+
+2.3 Keywords (关键字)
+
+/* 基础控制 */
+new, cpy, unsafe, close, keep, all, m
+
+/* 任意精度/长度类型 */
+ia, fa, sa, timer
+
+/* 控制流 */
+if, else, while, for, switch, case, default
+
+/* 函数与类型定义 */
+fn, return, struct, impl
+
+/* 错误处理 */
+try, catch, throw
+
+/* 异步并发 */
+async, await, spawn
+
+/* 第三方导入 (仅用于外部库) */
+import, from, as
+
+/* 字面量关键字 */
+true, false
+
+(注：m 在类型上下文中作为特殊前缀关键字处理，用于内存重解释)
+
+2.4 Operators & Delimiters (运算符与分隔符)
+
+/* 算术运算符 */
++   -   *   /   %
+
+/* 赋值运算符 */
+=   +=  -=  *=  /=  %=  &=  |=  ^=
+
+/* 比较运算符 */
+==  !=  >   <   >=  <=
+
+/* 逻辑运算符 */
+&&  ||
+
+/* 其他运算符 */
+->  (箭头，用于函数返回类型)
+
+/* 分隔符 */
+.   ,   :   ;   (   )   [   ]   {   }
+
+/* 特殊符号 */
+@   ~   &   |   ^   !
+
+3. Syntactic Structure (句法结构)
+
+3.1 Program Structure (程序结构)
+program        = { top_level_decl } ;
+top_level_decl = import_stmt       /* 仅第三方 */
+               | function_def
+               | async_function_def
+               | struct_def
+               | impl_def
+               | block             /* 顶层语句块 */
+               ;
+
+3.2 Statements (语句)
+statement      = var_decl
+               | assignment
+               | copy_stmt
+               | unsafe_block
+               | if_stmt
+               | while_stmt
+               | for_stmt
+               | switch_stmt
+               | try_stmt
+               | throw_stmt
+               | async_stmt
+               | await_stmt
+               | spawn_stmt
+               | return_stmt
+               | block
+               | expr_stmt
+               ;
+
+block          = '[' [ { statement } ] ']' ; /* 代码块使用方括号 */
+
+/* A. 变量声明 (new) */
+var_decl       = 'new' identifier type_expr [ '=' expression ] ;
+
+示例：
+    new x i32
+    new y = 10
+
+/* B. 第三方导入 (Python 风格) */
+/* 仅用于引入外部第三方库。内置功能（如 print, sleep）不可也不需导入。*/
+import_stmt    = 'import' module_path [ 'as' alias ]
+               | 'from' module_path 'import' identifier [ 'as' alias ] { ',' identifier [ 'as' alias ] } ;
+module_path    = identifier { '.' identifier } ;
+
+示例：
+    import numpy as np
+    from my_lib.utils import helper_func, other_func
+
+/* C. 内存复制 (cpy) */
+copy_stmt      = 'cpy' identifier type_expr '(' [ expression ] ')' ;
+
+语义：cpy dest<type>(src)
+
+/* D. Unsafe Block (精准控制) */
+unsafe_block   = 'unsafe' scope_modifier block ;
+scope_modifier = 'close' '(' safety_target ')'
+               | 'keep' '(' safety_target ')'
+               | 'all' ;
+safety_target  = 'init' | 'bounds' | 'lifetime' | 'null' | identifier ;
+
+示例：
+    unsafe close(bounds) [ ... ]
+    unsafe all [ ... ]
+
+/* E. 控制流 */
+if_stmt        = 'if' '(' expression ')' block [ 'else' ( block | if_stmt ) ] ;
+while_stmt     = 'while' '(' expression ')' block ;
+for_stmt       = 'for' '(' var_decl ',' expression ',' assignment ')' block ;
+
+/* F. Switch 模式匹配 */
+switch_stmt    = 'switch' primary_expr '[' { case_clause } ']' ;
+case_clause    = 'case' pattern ':' block
+               | 'default' ':' block ;
+pattern        = literal | identifier | '_' ;
+
+/* G. 错误处理 */
+try_stmt       = 'try' block { 'catch' '(' identifier type_expr ')' block } ;
+throw_stmt     = 'throw' expression ;
+
+/* H. 异步与并发 */
+async_stmt     = 'async' ( block | function_def ) ;
+await_stmt     = 'await' expression ;
+spawn_stmt     = 'spawn' expression ;
+async_fn_def   = 'async' 'fn' identifier '(' [ params ] ')' [ '->' type_expr ] block ;
+
+/* I. 表达式语句与返回 */
+expr_stmt      = expression ;
+return_stmt    = 'return' [ expression ] ;
+assignment     = assignment_target assign_op expression ;
+assignment_target = identifier | identifier '.' identifier ;
+assign_op      = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' ;
+
+4. Expressions & Types (表达式与类型)
+
+4.1 Type Expressions
+type_expr      = base_type
+               | pointer_type
+               | array_type
+               | memory_cast_type
+               | special_type
+               ;
+
+base_type      = identifier ; /* i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, bool, str, void 等 */
+pointer_type   = '*' type_expr ;
+array_type     = '[' type_expr ']' | '[' type_expr ';' int_literal ']' ;
+memory_cast_type = 'm' '+' type_expr ; /* 物理重解释 */
+special_type   = 'Result' | 'Future' | 'ia' | 'fa' | 'sa' | 'timer' ;
+
+/* 内置类型映射 */
+/* i8, i16, i32, i64  -> Zig: i8, i16, i32, i64 */
+/* u8, u16, u32, u64  -> Zig: u8, u16, u32, u64 */
+/* f32, f64           -> Zig: f32, f64 */
+/* bool               -> Zig: bool */
+/* str                -> Zig: []const u8 */
+/* void               -> Zig: void */
+/* ia (任意长度整数)   -> Zig: i128 */
+/* fa (任意长度浮点)   -> Zig: f128 */
+/* sa (任意长度字符串) -> Zig: []const u8 */
+/* timer              -> Zig: Timer */
+/* Result             -> Zig: anyerror!void */
+/* Future             -> Zig: anyerror!void */
+
+4.2 Expressions (表达式优先级从高到低)
+
+/* 4.2.1 Primary Expression */
+primary_expr   = identifier
+               | literal
+               | '(' expression ')'
+               | block_expr
+               | async_block
+               | try_block
+               | memory_cast_expr
+               ;
+
+block_expr     = '[' { statement } ']' ;
+async_block    = 'async' block ;
+try_block      = 'try' block ;
+memory_cast_expr = 'm' '+' type_expr primary_expr ;
+
+/* 4.2.2 Postfix Expression */
+postfix_expr   = primary_expr { call_suffix | field_access_suffix | array_index_suffix } ;
+call_suffix    = '(' [ arg_list ] ')' ;
+field_access_suffix = '.' identifier ;
+array_index_suffix = '[' expression ']' ;
+arg_list       = expression { ',' expression } ;
+
+/* 4.2.3 Unary Expression */
+unary_expr     = '-' unary_expr
+               | '*' unary_expr
+               | postfix_expr
+               ;
+
+/* 4.2.4 Multiplicative Expression */
+multiplicative_expr = unary_expr { ( '*' | '/' | '%' ) unary_expr } ;
+
+/* 4.2.5 Additive Expression */
+additive_expr  = multiplicative_expr { ( '+' | '-' ) multiplicative_expr } ;
+
+/* 4.2.6 Comparison Expression */
+comparison_expr = additive_expr { ( '>' | '<' | '>=' | '<=' ) additive_expr } ;
+
+/* 4.2.7 Equality Expression */
+equality_expr  = comparison_expr { ( '==' | '!=' ) comparison_expr } ;
+
+/* 4.2.8 Logical AND Expression */
+logical_and_expr = equality_expr { '&&' equality_expr } ;
+
+/* 4.2.9 Logical OR Expression */
+logical_or_expr = logical_and_expr { '||' logical_and_expr } ;
+
+/* 4.2.10 Expression (顶层) */
+expression     = logical_or_expr ;
+
+4.3 Literals (字面量)
+literal        = int_literal
+               | float_literal
+               | string_literal
+               | interpolated_string
+               | bool_literal
+               ;
+
+int_literal    = digit { digit } | '0x' hex_digit { hex_digit } ;
+float_literal  = digit { digit } '.' digit { digit } [ ('e'|'E') ['+'|'-'] digit { digit } ] ;
+string_literal = '"' { char | escape_sequence } '"' ;
+interpolated_string = '"' { char | escape_sequence | '{' expression '}' } '"' ;
+bool_literal   = 'true' | 'false' ;
+
+5. Semantic Rules & Constraints (语义规则与约束)
+
+5.1 Compiler Auto-Injection (编译器自动注入)
+*   规则：编译器在编译阶段自动将所有标准库符号（如 print, str, len, Result, Future, sleep 等）注入到全局作用域。
+*   限制：用户不能也不需要使用 import 关键字来引入这些内置功能。尝试 import print 将导致编译错误。
+*   目的：简化样板代码，确保核心功能始终可用。
+
+5.2 Third-Party Isolation (第三方隔离)
+*   规则：import 和 from ... import 语法仅解析外部包管理器中的第三方库。
+*   声明：文档中出现的任何 import ... 示例均为第三方库使用事例，不代表内置功能需要导入。
+*   路径：支持点号分隔的模块路径 (e.g., pkg.subpkg.module)。
+
+5.3 Type Casting & Safety
+*   Logical Cast (expr): 值转换。
+*   Physical Reinterpret (m+Type): 位重解释，Safe 模式下严格检查 sizeof。
+*   Init Safety: new x 后不可读，除非赋值或在 unsafe close(init) 中。
+*   Bounds Safety: cpy 和数组访问在 Safe 模式下检查边界，可通过 unsafe close(bounds) 绕过。
+
+5.4 Async & Error Semantics
+*   Await: 仅限 async 上下文。
+*   Spawn: 启动独立任务，返回句柄。
+*   Try/Catch: 结构化错误捕获，支持类型匹配。
+*   Switch: 穷尽性检查 (Exhaustiveness Check)，必须覆盖所有情况或有 default。
+
+5.5 Comments (注释)
+*   符号：; (分号)
+*   范围：从分号开始直到行尾。
+*   注意：分号不用于语句结尾，仅用于注释。
+
+6. Examples (综合示例代码)
+
+注意:
+1.  注释使用分号 ;。
+2.  代码块使用方括号 []。
+3.  内置功能 (print, sleep, Result 等) 直接使用，无需导入。
+4.  第三方库使用 Python 风格导入 (本示例中仅为演示语法)。
+
+; ==========================================
+; 第三方库导入 (仅事例，实际无需导入内置功能)
+; 内置功能 (print, sleep, Result) 自动可用
+; ==========================================
+; import numpy as np             ; 事例：第三方库
+; from my_lib.utils import helper_func  ; 事例：第三方库
+
+; ------------------------------------------
+; 1. 定义自定义错误类型
+; ------------------------------------------
+struct SystemError [
+    code: i32
+    message: str
+]
+
+; ------------------------------------------
+; 2. 异步函数：模拟系统任务
+; ------------------------------------------
+async fn run_system_check(id: i32) -> Result [
+    ; 模拟耗时操作 (内置 sleep)
+    await sleep(500)
+
+    if (id < 0) [
+        throw SystemError { code: -1, message: "Invalid ID" }
+    ]
+
+    return Result
+]
+
+; ------------------------------------------
+; 3. 普通函数：内存重解释示例
+; ------------------------------------------
+fn process_raw_data() -> f64 [
+    ; 物理重解释示例
+    new int_rep = 0x3FF0000000000000
+    new pi_val = m+f64 int_rep
+
+    return pi_val
+]
+
+; ------------------------------------------
+; 4. 主程序入口
+; ------------------------------------------
+[
+    ; --- A. 基础输出与插值 (内置 print) ---
+    new app_version = "1.0.0"
+    print("Starting App v{app_version}")
+
+    ; --- B. 并发任务 (Spawn) ---
+    new monitor_handle = spawn async [
+        new count = 0
+        while (count < 3) [
+            await sleep(200)
+            count = count + 1
+        ]
+    ]
+
+    ; --- C. 错误处理 (Try/Catch) ---
+    try [
+        new result = await run_system_check(101)
+        print("Check Result: {result}")
+    ] catch (err SystemError) [
+        print("System Failed: [{err.code}] {err.message}")
+    ] catch (e Any) [
+        print("Unknown Error: {e}")
+        throw e
+    ]
+
+    ; --- D. 模式匹配 (Switch) ---
+    new status = 200
+    switch (status) [
+        case 200:
+            print("Status: Success")
+        case 404:
+            print("Status: Not Found")
+        case 500:
+            print("Status: Server Error")
+        default:
+            print("Status: Other ({status})")
+    ]
+
+    ; --- E. 底层内存操作 ---
+    new pi = process_raw_data()
+    print("Calculated Pi: {pi}")
+
+    ; --- F. 等待后台任务 ---
+    await monitor_handle
+
+    print("All tasks completed.")
+    return 0
+]
+
+; ------------------------------------------
+; 5. 更多语法示例
+; ------------------------------------------
+
+; --- 变量声明 ---
+new x i32              ; 声明未初始化
+new y = 42             ; 声明并初始化
+new z f64 = 3.14159    ; 浮点数
+new hex_val = 0xFF     ; 十六进制
+new sci = 1.5e10       ; 科学计数法
+
+; --- 数组类型 ---
+new arr [i32]          ; 动态数组
+new fixed [i32; 5]     ; 固定大小数组
+
+; --- 指针类型 ---
+new ptr *i32           ; 指针
+
+; --- 任意精度类型 ---
+new big_int ia         ; 任意长度整数 (映射到 i128)
+new big_float fa       ; 任意长度浮点 (映射到 f128)
+new long_str sa        ; 任意长度字符串
+
+; --- 运算符 ---
+new a = 10 + 5         ; 加法
+new b = 10 - 5         ; 减法
+new c = 10 * 5         ; 乘法
+new d = 10 / 5         ; 除法
+new e = 10 % 3         ; 取余
+
+a += 1                 ; 复合赋值
+b -= 1
+c *= 2
+d /= 2
+
+; --- 逻辑运算 ---
+new flag = (a > 5) && (b < 10)
+new other = (a < 5) || (b > 20)
+
+; --- 字段访问赋值 ---
+new point.x = 10
+new point.y = 20
+
+; --- For 循环 ---
+for (new i = 0, i < 10, i += 1) [
+    print("Iteration: {i}")
+]
+
+; --- Unsafe 块 ---
+unsafe all [
+    ; 完全关闭安全检查
+    new raw = m+*i32 0x1000
+]
+
+unsafe close(init) [
+    ; 关闭初始化检查
+    new uninitialized i32
+    print("{uninitialized}")  ; 通常这是不允许的
+]
+
+unsafe close(bounds) [
+    ; 关闭边界检查
+    new arr = [1, 2, 3]
+    new val = arr[10]  ; 不会触发边界检查
+]
