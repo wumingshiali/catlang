@@ -1,0 +1,23 @@
+; Test Timer functionality
+
+[main
+    print("=== Timer Test ===\\n\\n")
+
+    new t<timer> = Timer.init()
+
+    t.start()
+
+    ; Simulate some work with a loop
+    new i<ia> = 0
+    while (i < 100000000) [
+        i = i + 1
+    ]
+
+    t.stop()
+
+    print("Elapsed time: {} ms\\n", t.ms())
+    print("Elapsed time: {} s\\n", t.seconds())
+    print("Elapsed time: {} us\\n", t.us())
+
+    print("\\n=== Timer Test Complete ===\\n")
+]

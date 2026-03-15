@@ -1,0 +1,13 @@
+; Test ia, fa, sa types
+
+[main
+    new a<ia> = 123
+    new b<fa> = 45.67
+    new c<sa> = "hello world"
+
+    a = a + 1000
+    
+    print("ia test: {}\n", a)
+    print("fa test: {}\n", b)
+    print("sa test: {s}\n", c)
+]
