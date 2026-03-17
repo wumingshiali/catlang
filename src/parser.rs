@@ -103,25 +103,44 @@ impl Parser {
             }
             TokenKind::Eof => Ok(None),
             _ => {
-                // Try to parse as statement
+                // Try to parse as statement and collect all following statements
+                let mut statements = Vec::new();
+                
+                // Parse the first statement
                 let stmt = self.parse_statement()?;
-                // Wrap statement in a block for sequential execution
-                let block = match stmt {
-                    Stmt::Block(b) => b,
-                    _ => Block {
-                        statements: vec![stmt],
+                match stmt {
+                    Stmt::Block(b) => statements.extend(b.statements),
+                    _ => statements.push(stmt),
+                };
+                
+                // Continue parsing statements until we hit a declaration or EOF
+                while !self.is_at_end() {
+                    match &self.peek().kind {
+                        TokenKind::KwImport | TokenKind::KwStruct | TokenKind::KwImpl |
+                        TokenKind::KwAsync | TokenKind::KwFn | TokenKind::KwNew |
+                        TokenKind::LBracket | TokenKind::Eof => break,
+                        TokenKind::Comment(_) => {
+                            self.advance();
+                        }
+                        _ => {
+                            let stmt = self.parse_statement()?;
+                            match stmt {
+                                Stmt::Block(b) => statements.extend(b.statements),
+                                _ => statements.push(stmt),
+                            };
+                        }
+                    }
+                }
+                
+                if statements.is_empty() {
+                    Ok(None)
+                } else {
+                    let block = Block {
+                        statements,
                         span: Span::new(0, 0),
-                    },
-                };
-                let fn_def = FunctionDef {
-                    name: "Main".to_string(),
-                    params: Vec::new(),
-                    return_type: None,
-                    body: block,
-                    is_async: false,
-                    span: Span::new(0, 0),
-                };
-                Ok(Some(TopLevelDecl::Function(fn_def)))
+                    };
+                    Ok(Some(TopLevelDecl::Statements(block)))
+                }
             }
         }
     }
@@ -622,17 +641,31 @@ impl Parser {
     fn parse_var_decl(&mut self) -> ParseResult<VarDecl> {
         let span = self.peek().span;
         self.advance(); // consume 'new'
-        
+
         let name = self.parse_identifier()?;
-        let var_type = self.parse_type_expr()?;
-        
+
+        // Check for type expression
+        // Supports: new name<type> or new name type
+        let var_type = if self.check(&TokenKind::Less) {
+            // <type> syntax
+            self.advance(); // consume '<'
+            let ty = self.parse_type_expr()?;
+            self.expect(&TokenKind::Greater, "Expected '>' to close type")?;
+            ty
+        } else if self.check(&TokenKind::Equal) {
+            // Type inference - use a placeholder type
+            TypeExpr::Base("auto".to_string())
+        } else {
+            self.parse_type_expr()?
+        };
+
         let init = if self.check(&TokenKind::Equal) {
             self.advance();
             Some(self.parse_expression()?)
         } else {
             None
         };
-        
+
         Ok(VarDecl { name, var_type, init, span })
     }
 

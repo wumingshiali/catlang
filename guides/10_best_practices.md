@@ -43,7 +43,7 @@ fn process_data(input: str, threshold: i32, max_iterations: i32) -> Result [
     ] else [
         return error("无效输入")
     ]
-}
+]
 
 ; 不好的格式 - 拥挤
 fn process_data(input: str,threshold:i32,max_iterations:i32)->Result[new result=validate(input);if(result.is_valid)[return transform(result,threshold)]else[return error("无效输入")]]
@@ -62,7 +62,7 @@ fn process_users(users: [User]) [
     ]
     
     print("处理完成，共{len(sorted)}个用户")
-}
+]
 
 ; 不好的做法 - 没有分隔
 fn process_users(users: [User]) [
@@ -72,7 +72,7 @@ fn process_users(users: [User]) [
         print("用户：{user.name}")
     ]
     print("处理完成，共{len(sorted)}个用户")
-}
+]
 ```
 
 ### 注释规范
@@ -82,13 +82,13 @@ fn process_users(users: [User]) [
 ; 使用快速排序，因为数据量大时性能更好
 fn sort_data(data: [i32]) [
     quick_sort(data)
-}
+]
 
 ; 不好的注释 - 重复代码
 ; 调用快速排序
 fn sort_data(data: [i32]) [
     quick_sort(data)  ; 排序数据
-}
+]
 
 ; 好的注释 - 说明边界情况
 ; 注意：当除数为零时返回 0 而不是抛出错误
@@ -108,12 +108,12 @@ fn safe_divide(a: i32, b: i32) -> i32 [
 ; 好的做法 - 传递引用（如果支持）
 fn process_large_data(data: &LargeData) [
     ; 使用数据但不复制
-}
+]
 
 ; 不好的做法 - 值传递导致复制
 fn process_large_data(data: LargeData) [
     ; 整个结构体被复制
-}
+]
 ```
 
 ### 预分配容量
@@ -154,7 +154,7 @@ fn sum_array(arr: [i32]) -> i32 [
     ]
     
     return sum
-}
+]
 
 ; 不好的做法 - 循环内重复计算
 fn sum_array(arr: [i32]) -> i32 [
@@ -163,7 +163,7 @@ fn sum_array(arr: [i32]) -> i32 [
         sum = sum + arr[i]
     ]
     return sum
-}
+]
 ```
 
 ### 异步并发优化
@@ -178,7 +178,7 @@ async fn fetch_all_data() [
     new users = await h1
     new posts = await h2
     new comments = await h3
-}
+]
 
 ; 不好的做法 - 顺序执行
 async fn fetch_all_data() [
@@ -363,15 +363,15 @@ fn parse_int(s: str) -> i32 [
             position: 0,
             expected: "数字字符串"
         }
-    }
-}
+    ]
+]
 
 ; 不好的做法
 fn parse_int(s: str) -> i32 [
     if (!is_numeric(s)) [
         throw "解析失败"  ; 信息不足
-    }
-}
+    ]
+]
 ```
 
 ### 在合适的层级处理错误
@@ -381,9 +381,9 @@ fn parse_int(s: str) -> i32 [
 fn read_file(path: str) -> str [
     if (!file_exists(path)) [
         throw FileError { path: path, reason: "文件不存在" }
-    }
+    ]
     return read_file_content(path)
-}
+]
 
 ; 中层：转换错误
 fn load_config() -> Config [
@@ -393,7 +393,7 @@ fn load_config() -> Config [
     ] catch (e FileError) [
         throw ConfigError { reason: "无法读取配置文件" }
     ]
-}
+]
 
 ; 高层：向用户展示友好信息
 [
@@ -661,7 +661,7 @@ fn find_max(arr: [i32]) -> i32 [
         if (arr[i] > max) [
             max = arr[i]
         ]
-    }
+    ]
     
     return max
 ]
@@ -679,7 +679,7 @@ fn find_max(arr: [i32]) -> i32 [
 5. ✅ 模块导入和最佳实践
 
 继续探索：
-- 阅读 [语法规范](../syntax.txt) 了解完整语法
+- 阅读 [语法规范(已弃用)](../syntax.txt) 了解完整语法
 - 查看 `benchmark/` 和 `test/` 目录中的示例代码
 - 开始编写你自己的 CatLang 项目！
 

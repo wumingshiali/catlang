@@ -47,6 +47,74 @@ impl ZigCodeGen {
         self.writeln("}");
         self.writeln("");
 
+        // Generate readInput helper - reads a line from stdin with optional prompt
+        self.writeln("// readInput - reads a line from stdin with optional prompt");
+        self.writeln("fn readInput() []const u8 {");
+        self.indent_level += 1;
+        self.writeln("const stdin = std.io.getStdIn().reader();");
+        self.writeln("const stdout = std.io.getStdOut().writer();");
+        self.writeln("var buffer: [1024]u8 = undefined;");
+        self.writeln("const line = stdin.readUntilDelimiter(&buffer, '\\n') catch &buffer;");
+        self.writeln("return line;");
+        self.indent_level -= 1;
+        self.writeln("}");
+        self.writeln("");
+
+        self.writeln("// readInputWithPrompt - prints prompt then reads a line from stdin");
+        self.writeln("fn readInputWithPrompt(comptime fmt: []const u8, args: anytype) []const u8 {");
+        self.indent_level += 1;
+        self.writeln("const stdin = std.io.getStdIn().reader();");
+        self.writeln("const stdout = std.io.getStdOut().writer();");
+        self.writeln("print(fmt, args);");
+        self.writeln("var buffer: [1024]u8 = undefined;");
+        self.writeln("const line = stdin.readUntilDelimiter(&buffer, '\\n') catch &buffer;");
+        self.writeln("return line;");
+        self.indent_level -= 1;
+        self.writeln("}");
+        self.writeln("");
+
+        // Generate readInputTo - reads input and converts to target type
+        self.writeln("// readInputTo - prints prompt, reads input, and converts to target type");
+        self.writeln("fn readInputTo(comptime fmt: []const u8, args: anytype, comptime T: type) T {");
+        self.indent_level += 1;
+        self.writeln("const stdin = std.io.getStdIn().reader();");
+        self.writeln("const stdout = std.io.getStdOut().writer();");
+        self.writeln("print(fmt, args);");
+        self.writeln("var buffer: [1024]u8 = undefined;");
+        self.writeln("const line = stdin.readUntilDelimiter(&buffer, '\\n') catch &buffer;");
+        self.writeln("if (T == []const u8) {");
+        self.indent_level += 1;
+        self.writeln("return line;");
+        self.indent_level -= 1;
+        self.writeln("} else if (T == i32) {");
+        self.indent_level += 1;
+        self.writeln("return std.fmt.parseInt(i32, line, 10) catch 0;");
+        self.indent_level -= 1;
+        self.writeln("} else if (T == i64) {");
+        self.indent_level += 1;
+        self.writeln("return std.fmt.parseInt(i64, line, 10) catch 0;");
+        self.indent_level -= 1;
+        self.writeln("} else if (T == f64) {");
+        self.indent_level += 1;
+        self.writeln("return std.fmt.parseFloat(f64, line) catch 0.0;");
+        self.indent_level -= 1;
+        self.writeln("} else if (T == i128) {");
+        self.indent_level += 1;
+        self.writeln("return std.fmt.parseInt(i128, line, 10) catch 0;");
+        self.indent_level -= 1;
+        self.writeln("} else if (T == f128) {");
+        self.indent_level += 1;
+        self.writeln("return std.fmt.parseFloat(f128, line) catch 0.0;");
+        self.indent_level -= 1;
+        self.writeln("} else {");
+        self.indent_level += 1;
+        self.writeln("return line;");
+        self.indent_level -= 1;
+        self.writeln("}");
+        self.indent_level -= 1;
+        self.writeln("}");
+        self.writeln("");
+
         // Generate Timer helper struct
         self.writeln("// Timer - High precision timer");
         self.writeln("const Timer = struct {");
@@ -368,6 +436,26 @@ impl ZigCodeGen {
             Stmt::Block(block) => self.generate_block(block)?,
             Stmt::UnsafeBlock(unsafe_block) => self.generate_unsafe_block(unsafe_block)?,
             Stmt::Expr(expr) => {
+                // Check if this is an input() call with variable argument
+                // If so, generate assignment instead of expression statement
+                if let ExprKind::Call(func, args) = &expr.kind {
+                    if let ExprKind::Identifier(func_name) = &func.kind {
+                        if func_name == "input" && !args.is_empty() {
+                            // Check if last argument is a variable (for type conversion pattern)
+                            let last_arg = args.last().unwrap();
+                            if let ExprKind::Identifier(var_name) = &last_arg.kind {
+                                // Check if first arg is a string literal (format string)
+                                let is_format_string = matches!(&args[0].kind, ExprKind::Literal(Literal::String(_) | Literal::InterpolatedString(_)));
+                                if is_format_string {
+                                    // This is input("prompt", var) pattern - generate assignment
+                                    let expr_str = self.generate_expr(expr)?;
+                                    self.writeln(&format!("{} = {};", var_name, expr_str));
+                                    return Ok(());
+                                }
+                            }
+                        }
+                    }
+                }
                 let expr_str = self.generate_expr(expr)?;
                 self.writeln(&format!("{};", expr_str));
             }
@@ -377,7 +465,6 @@ impl ZigCodeGen {
     }
 
     fn generate_var_decl(&mut self, var_decl: &VarDecl) -> CodeGenResult<()> {
-        let zig_type = var_decl.var_type.to_zig_type();
         // Use 'var' for Timer types (methods need mutable reference) or if the variable is reassigned
         // This is required by Zig's strict const checking
         let is_timer = matches!(var_decl.var_type, TypeExpr::Timer);
@@ -394,12 +481,23 @@ impl ZigCodeGen {
             if var_decl.name == "_" || var_decl.name.starts_with("_") {
                 self.writeln(&format!("_ = {};", init_expr));
             } else {
-                self.writeln(&format!(
-                    "{} {}: {} = {};",
-                    var_keyword, var_decl.name, zig_type, init_expr
-                ));
+                // Handle type inference ("auto" type)
+                if var_decl.var_type.to_zig_type() == "auto" {
+                    // Let Zig infer the type using @TypeOf
+                    self.writeln(&format!(
+                        "{} {} = @TypeOf({});",
+                        var_keyword, var_decl.name, init_expr
+                    ));
+                } else {
+                    let zig_type = var_decl.var_type.to_zig_type();
+                    self.writeln(&format!(
+                        "{} {}: {} = {};",
+                        var_keyword, var_decl.name, zig_type, init_expr
+                    ));
+                }
             }
         } else {
+            let zig_type = var_decl.var_type.to_zig_type();
             self.writeln(&format!("var {}: {} = undefined;", var_decl.name, zig_type));
         }
         Ok(())
@@ -732,15 +830,65 @@ impl ZigCodeGen {
                 // Handle built-in functions
                 let zig_func = match func_str.as_str() {
                     "print" => "print".to_string(), // Use our optimized print helper
-                    "input" => "readInput".to_string(),
+                    "input" => "input".to_string(),
                     "len" => "@as(usize, 0)".to_string(),
                     "sleep" => "std.time.sleep".to_string(),
                     _ => func_str,
                 };
 
-                // Handle input() - no arguments, reads a line from stdin
-                if zig_func == "readInput" {
-                    Ok("readInput()".to_string())
+                // Handle input() - supports:
+                // 1. input() - no prompt, returns string
+                // 2. input("prompt") - with prompt, returns string
+                // 3. input("prompt {}", arg1, ...) - with formatted prompt, returns string
+                // 4. input("prompt {}", var) - as statement, reads input into var with type conversion
+                if zig_func == "input" {
+                    if args_str.is_empty() {
+                        // No arguments - just read input (returns string)
+                        Ok("readInput()".to_string())
+                    } else if args_str.len() == 1 {
+                        // Single argument - prompt string
+                        let prompt = &args_str[0];
+                        if prompt.starts_with('"') {
+                            // Check if it has format placeholders
+                            if prompt.contains("{}") || prompt.contains("{var}") {
+                                // Has format placeholders but no values - treat as plain prompt
+                                Ok(format!("readInputWithPrompt({}, .{{}})", prompt))
+                            } else {
+                                // Plain prompt string
+                                Ok(format!("readInputWithPrompt(\"{{}}\", .{{ {} }})", prompt))
+                            }
+                        } else {
+                            // Variable as prompt - this is input("prompt", var) pattern
+                            // Read input and convert to variable's type
+                            Ok(format!("readInputTo(\"{{}}\", .{{}}, @TypeOf({}))", prompt))
+                        }
+                    } else {
+                        // Multiple arguments - first is format string, rest are values/variables
+                        let format_str = &args_str[0];
+                        let last_arg = args_str.last().unwrap();
+                        
+                        // Check if last argument is a variable (not a string literal)
+                        // This indicates input("prompt {}", var) pattern for type conversion
+                        if !last_arg.starts_with('"') && !last_arg.starts_with('&') {
+                            // This is input("prompt {}", var) pattern - read into variable with type conversion
+                            let values = if args_str.len() > 2 {
+                                // Multiple format values before the target variable
+                                args_str[1..args_str.len()-1].join(", ")
+                            } else {
+                                String::new()
+                            };
+                            let target_var = last_arg;
+                            if values.is_empty() {
+                                Ok(format!("readInputTo({}, .{{}}, @TypeOf({}))", format_str, target_var))
+                            } else {
+                                Ok(format!("readInputTo({}, .{{ {} }}, @TypeOf({}))", format_str, values, target_var))
+                            }
+                        } else {
+                            // All arguments are format values - returns string
+                            let values = args_str[1..].join(", ");
+                            Ok(format!("readInputWithPrompt({}, .{{ {} }})", format_str, values))
+                        }
+                    }
                 }
                 // Optimized print handling
                 else if zig_func == "print" {
