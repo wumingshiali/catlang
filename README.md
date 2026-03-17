@@ -4,7 +4,7 @@
 
 **A concise, safe, and high-performance systems programming language**
 
-[Benchmark Results](BENCHMARK_RESULTS.md) | [Syntax Guide](syntax.txt) | [Examples](test)
+[Benchmark Results](BENCHMARK_RESULTS.md) | [Syntax Guide(Deprecated)](syntax.txt) | [Examples](test) | [Guide(Only Chinese](guides/README.md)
 
 </div>
 
@@ -83,7 +83,7 @@ fn fib(n: i32) -> i32 [
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/catlang.git
+git clone https://github.com/wumingshiali/catlang.git
 cd catlang
 
 # Build the compiler
