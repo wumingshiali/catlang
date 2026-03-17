@@ -357,6 +357,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **CatLang** - Simple as Python, Fast as Rust 🚀
 
-Made with ❤️ by CatLang Team
-
 </div>
