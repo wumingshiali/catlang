@@ -55,6 +55,7 @@ impl Parser {
             ("ia", TokenKind::KwIa),
             ("fa", TokenKind::KwFa),
             ("sa", TokenKind::KwSa),
+            ("arr", TokenKind::KwArr),
             // Any-width types
             ("a8", TokenKind::KwA8),
             ("a16", TokenKind::KwA16),
@@ -139,6 +140,15 @@ impl Parser {
                 let var_decl = self.parse_var_decl()?;
                 let block = Block {
                     statements: vec![Stmt::VarDecl(var_decl)],
+                    span: Span::new(0, 0),
+                };
+                Ok(Some(TopLevelDecl::Statements(block)))
+            }
+            TokenKind::KwArr => {
+                // At top level, treat as sequential statement
+                let arr_decl = self.parse_arr_decl()?;
+                let block = Block {
+                    statements: vec![Stmt::VarDecl(arr_decl)],
                     span: Span::new(0, 0),
                 };
                 Ok(Some(TopLevelDecl::Statements(block)))
@@ -516,6 +526,37 @@ impl Parser {
         // Base type or generic type
         let name = self.parse_identifier()?;
 
+        // Check for list type: long(capacity)<element_type>
+        // where capacity is a number or 'a' for arbitrary length
+        if name == "long" && self.check(&TokenKind::LParen) {
+            self.advance(); // consume '('
+            
+            // Parse capacity: number or 'a'
+            let capacity = if let TokenKind::Identifier(s) = &self.peek().kind {
+                if s == "a" {
+                    self.advance(); // consume 'a'
+                    ListLength::Arbitrary
+                } else {
+                    return Err(self.error("Expected capacity (number or 'a') for long type"));
+                }
+            } else if let TokenKind::IntLiteral(s) = &self.peek().kind {
+                let cap: usize = s.parse().map_err(|_| self.error("Invalid capacity"))?;
+                self.advance();
+                ListLength::Fixed(cap)
+            } else {
+                return Err(self.error("Expected capacity (number or 'a') for long type"));
+            };
+            
+            self.expect(&TokenKind::RParen, "Expected ')' after capacity")?;
+            
+            // Parse element type: <type>
+            self.expect(&TokenKind::Less, "Expected '<' before element type")?;
+            let element_type = self.parse_type_expr()?;
+            self.expect(&TokenKind::Greater, "Expected '>' to close element type")?;
+            
+            return Ok(TypeExpr::List(Box::new(element_type), capacity));
+        }
+
         // Check for Result or Future
         match name.as_str() {
             "Result" => Ok(TypeExpr::Result),
@@ -525,11 +566,11 @@ impl Parser {
                 if self.check(&TokenKind::Less) {
                     self.advance(); // consume '<'
                     let mut params = Vec::new();
-                    
+
                     // Parse first type parameter
                     if !self.check(&TokenKind::Greater) {
                         params.push(self.parse_type_expr()?);
-                        
+
                         // Parse remaining type parameters
                         while self.check(&TokenKind::Comma) {
                             self.advance();
@@ -539,7 +580,7 @@ impl Parser {
                             params.push(self.parse_type_expr()?);
                         }
                     }
-                    
+
                     self.expect(&TokenKind::Greater, "Expected '>' to close generic type")?;
                     Ok(TypeExpr::Generic(Box::new(TypeExpr::Base(name)), params))
                 } else {
@@ -609,6 +650,10 @@ impl Parser {
             TokenKind::KwNew => {
                 let var_decl = self.parse_var_decl()?;
                 Ok(Stmt::VarDecl(var_decl))
+            }
+            TokenKind::KwArr => {
+                let arr_decl = self.parse_arr_decl()?;
+                Ok(Stmt::VarDecl(arr_decl))
             }
             TokenKind::KwCpy => {
                 let copy = self.parse_copy_stmt()?;
@@ -680,13 +725,14 @@ impl Parser {
     fn is_assignment(&mut self) -> bool {
         // Check for simple identifier assignment: ident = ...
         // Or field access: ident.field = ...
+        // Or array index assignment: ident[expr] = ...
         let current = self.peek();
         let next = self.peek_next();
-        
+
         if !matches!(&current.kind, TokenKind::Identifier(_)) {
             return false;
         }
-        
+
         if matches!(
             &next.kind,
             TokenKind::Equal
@@ -701,7 +747,7 @@ impl Parser {
         ) {
             return true;
         }
-        
+
         // Check for field access assignment: ident.field = ...
         if matches!(&next.kind, TokenKind::Dot) {
             if let Some(after_dot) = self.tokens.get(self.current + 2) {
@@ -725,7 +771,42 @@ impl Parser {
                 }
             }
         }
-        
+
+        // Check for array index assignment: ident[expr] = ...
+        if matches!(&next.kind, TokenKind::LBracket) {
+            // Look for matching RBracket followed by =
+            let mut depth = 1;
+            let mut idx = self.current + 2; // Skip ident and [
+            while idx < self.tokens.len() {
+                if matches!(&self.tokens[idx].kind, TokenKind::LBracket) {
+                    depth += 1;
+                } else if matches!(&self.tokens[idx].kind, TokenKind::RBracket) {
+                    depth -= 1;
+                    if depth == 0 {
+                        // Found matching ], check if next is =
+                        if let Some(after_bracket) = self.tokens.get(idx + 1) {
+                            if matches!(
+                                &after_bracket.kind,
+                                TokenKind::Equal
+                                    | TokenKind::PlusEqual
+                                    | TokenKind::MinusEqual
+                                    | TokenKind::StarEqual
+                                    | TokenKind::SlashEqual
+                                    | TokenKind::PercentEqual
+                                    | TokenKind::AndEqual
+                                    | TokenKind::OrEqual
+                                    | TokenKind::XorEqual
+                            ) {
+                                return true;
+                            }
+                        }
+                        break;
+                    }
+                }
+                idx += 1;
+            }
+        }
+
         false
     }
 
@@ -748,6 +829,32 @@ impl Parser {
             TypeExpr::Base("auto".to_string())
         } else {
             self.parse_type_expr()?
+        };
+
+        let init = if self.check(&TokenKind::Equal) {
+            self.advance();
+            Some(self.parse_expression()?)
+        } else {
+            None
+        };
+
+        Ok(VarDecl { name, var_type, init, span })
+    }
+
+    fn parse_arr_decl(&mut self) -> ParseResult<VarDecl> {
+        let span = self.peek().span;
+        self.advance(); // consume 'arr'
+
+        let name = self.parse_identifier()?;
+
+        // Parse list type: <long(数字或 a)<type>>
+        let var_type = if self.check(&TokenKind::Less) {
+            self.advance(); // consume '<'
+            let ty = self.parse_type_expr()?;
+            self.expect(&TokenKind::Greater, "Expected '>' to close list type")?;
+            ty
+        } else {
+            return Err(self.error("Expected '<long(...)<type>>' after array name"));
         };
 
         let init = if self.check(&TokenKind::Equal) {
@@ -1045,13 +1152,19 @@ impl Parser {
 
     fn parse_assignment(&mut self) -> ParseResult<Assignment> {
         let span = self.peek().span;
-        
-        // Parse target: could be identifier or field access
+
+        // Parse target: could be identifier, field access, or array index
         let target = if self.is_field_access_assignment() {
             let obj = self.parse_identifier()?;
             self.expect(&TokenKind::Dot, "Expected '.' for field access")?;
             let field = self.parse_identifier()?;
             AssignmentTarget::FieldAccess(obj, field)
+        } else if self.is_array_index_assignment() {
+            let arr_name = self.parse_identifier()?;
+            self.expect(&TokenKind::LBracket, "Expected '[' for array index")?;
+            let index = self.parse_expression()?;
+            self.expect(&TokenKind::RBracket, "Expected ']' to close array index")?;
+            AssignmentTarget::ArrayIndex(arr_name, Box::new(index))
         } else {
             let ident = self.parse_identifier()?;
             AssignmentTarget::Identifier(ident)
@@ -1074,6 +1187,44 @@ impl Parser {
         let value = self.parse_expression()?;
 
         Ok(Assignment { target, op, value, span })
+    }
+
+    fn is_array_index_assignment(&mut self) -> bool {
+        // Check if this is ident[expr] = ...
+        if let TokenKind::Identifier(_) = &self.peek().kind {
+            if let Some(TokenKind::LBracket) = self.tokens.get(self.current + 1).map(|t| &t.kind) {
+                // Find matching RBracket
+                let mut depth = 1;
+                let mut idx = self.current + 2;
+                while idx < self.tokens.len() {
+                    if matches!(&self.tokens[idx].kind, TokenKind::LBracket) {
+                        depth += 1;
+                    } else if matches!(&self.tokens[idx].kind, TokenKind::RBracket) {
+                        depth -= 1;
+                        if depth == 0 {
+                            // Check if next token is assignment operator
+                            if let Some(op) = self.tokens.get(idx + 1).map(|t| &t.kind) {
+                                return matches!(
+                                    op,
+                                    TokenKind::Equal
+                                        | TokenKind::PlusEqual
+                                        | TokenKind::MinusEqual
+                                        | TokenKind::StarEqual
+                                        | TokenKind::SlashEqual
+                                        | TokenKind::PercentEqual
+                                        | TokenKind::AndEqual
+                                        | TokenKind::OrEqual
+                                        | TokenKind::XorEqual
+                                );
+                            }
+                            break;
+                        }
+                    }
+                    idx += 1;
+                }
+            }
+        }
+        false
     }
 
     fn is_field_access_assignment(&mut self) -> bool {
@@ -1343,7 +1494,7 @@ impl Parser {
 
     fn parse_primary_expr(&mut self) -> ParseResult<Expr> {
         let span = self.peek().span;
-        
+
         let kind = match &self.peek().kind {
             TokenKind::IntLiteral(_)
             | TokenKind::FloatLiteral(_)
@@ -1355,7 +1506,7 @@ impl Parser {
             TokenKind::Identifier(name) => {
                 let name = name.clone();
                 self.advance();
-                
+
                 // Check for m+Type memory cast
                 if name == "m" && self.check(&TokenKind::Plus) {
                     self.advance();
@@ -1371,6 +1522,42 @@ impl Parser {
                 let expr = self.parse_expression()?;
                 self.expect(&TokenKind::RParen, "Expected ')' to close expression")?;
                 return Ok(expr);
+            }
+            TokenKind::LBrace => {
+                // {...} - empty list literal
+                self.advance(); // consume '{'
+                
+                // Check for ... (ellipsis)
+                let mut is_empty = true;
+                if self.check(&TokenKind::Dot) {
+                    // Check for ...
+                    if let Some(next) = self.tokens.get(self.current + 1) {
+                        if matches!(&next.kind, TokenKind::Dot) {
+                            if let Some(next2) = self.tokens.get(self.current + 2) {
+                                if matches!(&next2.kind, TokenKind::Dot) {
+                                    // This is ...
+                                    self.advance(); // consume first .
+                                    self.advance(); // consume second .
+                                    self.advance(); // consume third .
+                                    is_empty = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Skip any content inside (for now, just consume until })
+                while !self.check(&TokenKind::RBrace) && !self.is_at_end() {
+                    self.advance();
+                }
+                
+                self.expect(&TokenKind::RBrace, "Expected '}' to close list literal")?;
+                
+                if is_empty {
+                    ExprKind::Array(Vec::new())
+                } else {
+                    ExprKind::Array(Vec::new())
+                }
             }
             TokenKind::LBracket => {
                 let block = self.parse_block()?;
@@ -1390,7 +1577,7 @@ impl Parser {
                 return Err(self.error("Expected expression"));
             }
         };
-        
+
         Ok(Expr { kind, span })
     }
 

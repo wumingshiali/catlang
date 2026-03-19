@@ -132,6 +132,7 @@ pub struct Assignment {
 pub enum AssignmentTarget {
     Identifier(String),
     FieldAccess(String, String), // object.field
+    ArrayIndex(String, Box<Expr>), // array[index]
 }
 
 impl AssignmentTarget {
@@ -139,6 +140,7 @@ impl AssignmentTarget {
         match self {
             AssignmentTarget::Identifier(name) => name.clone(),
             AssignmentTarget::FieldAccess(obj, field) => format!("{}.{}", obj, field),
+            AssignmentTarget::ArrayIndex(_, _) => "[index]".to_string(), // Placeholder, actual index handled in codegen
         }
     }
 }
@@ -359,15 +361,26 @@ pub enum TypeExpr {
     Fa,    // arbitrary length float
     Sa,    // arbitrary length string
     Timer, // timer type
-    
+
     // Generic type with type parameters: <T> or <T1, T2, ...>
     Generic(Box<TypeExpr>, Vec<TypeExpr>),
-    
+
     // Arbitrary width types: a8, a16, a32, a64, aa
     // a8/a16/a32/a64 = any type with specific bit width
     // aa = any type with arbitrary/infinite length
     AnyWidth(u16),  // 8, 16, 32, 64
     AnyWidthArbitrary, // aa - arbitrary length
+
+    // List type with length specifier: arr name<long<type>>
+    // long can be a number (fixed capacity) or 'a' (arbitrary/infinite length)
+    List(Box<TypeExpr>, ListLength),
+}
+
+/// List length specifier
+#[derive(Debug, Clone)]
+pub enum ListLength {
+    Fixed(usize),      // Fixed capacity: long(10)
+    Arbitrary,         // Arbitrary/infinite length: long(a)
 }
 
 impl TypeExpr {
@@ -419,6 +432,15 @@ impl TypeExpr {
                 }
             }
             TypeExpr::AnyWidthArbitrary => "u128".to_string(), // Use u128 for arbitrary length
+
+            // List type: std.ArrayList(T) for arbitrary length, or fixed-size array
+            TypeExpr::List(inner, length) => {
+                let inner_type = inner.to_zig_type();
+                match length {
+                    ListLength::Fixed(capacity) => format!("[{}]{}", capacity, inner_type),
+                    ListLength::Arbitrary => format!("std.ArrayList({})", inner_type),
+                }
+            }
         }
     }
 
@@ -429,8 +451,7 @@ impl TypeExpr {
                 "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" |
                 "f32" | "f64" | "ia" | "fa" | "bool"
             )
-            | TypeExpr::AnyWidth(_)
-            | TypeExpr::AnyWidthArbitrary
+            || matches!(self, TypeExpr::AnyWidth(_) | TypeExpr::AnyWidthArbitrary)
         )
     }
     

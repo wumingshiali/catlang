@@ -572,6 +572,7 @@ impl<'a> Lexer<'a> {
             "ia" => TokenKind::KwIa,
             "fa" => TokenKind::KwFa,
             "sa" => TokenKind::KwSa,
+            "arr" => TokenKind::KwArr,
             // Any-width types
             "a8" => TokenKind::KwA8,
             "a16" => TokenKind::KwA16,

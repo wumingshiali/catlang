@@ -48,7 +48,10 @@ pub enum TokenKind {
     KwIa,  // arbitrary length int
     KwFa,  // arbitrary length float
     KwSa,  // arbitrary length string
-    
+
+    // Array/List keyword
+    KwArr, // array/list declaration
+
     // Any-width types (any type with specific bit width)
     KwA8,   // a8  - any 8-bit type
     KwA16,  // a16 - any 16-bit type
@@ -162,7 +165,9 @@ impl fmt::Display for TokenKind {
             TokenKind::KwIa => write!(f, "ia"),
             TokenKind::KwFa => write!(f, "fa"),
             TokenKind::KwSa => write!(f, "sa"),
-            
+
+            TokenKind::KwArr => write!(f, "arr"),
+
             TokenKind::KwA8 => write!(f, "a8"),
             TokenKind::KwA16 => write!(f, "a16"),
             TokenKind::KwA32 => write!(f, "a32"),
