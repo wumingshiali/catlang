@@ -40,15 +40,77 @@ struct Rectangle [
 
 [
     new rect = Rectangle { width: 10.5, height: 5.0 }
-    
+
     ; 访问字段
     new w = rect.width
     new h = rect.height
-    
+
     ; 修改字段
     rect.width = 15.0
     rect.height = 8.0
+
+    return 0
+]
+```
+
+### 泛型结构体
+
+CatLang 支持泛型结构体，允许在结构体定义中使用类型参数：
+
+```catlang
+; 定义泛型结构体
+struct Option<T> [
+    value: T
+    has_value: bool
+]
+
+struct Result<T, E> [
+    ok: T
+    err: E
+    is_ok: bool
+]
+
+struct Container<T> [
+    item: T
+    count: i32
+]
+
+[
+    ; 使用泛型结构体
+    new opt_int: Option<i32> = Option { value: 42, has_value: true }
+    new opt_str: Option<String> = Option { value: "Hello", has_value: true }
     
+    new res: Result<i32, String> = Result { ok: 100, err: "", is_ok: true }
+    
+    new container: Container<f64> = Container { item: 3.14, count: 1 }
+
+    return 0
+]
+```
+
+```catlang
+; 泛型结构体方法
+struct Box<T> [
+    data: T
+]
+
+impl Box<T> [
+    fn get_data(self: Box<T>) -> T [
+        return self.data
+    ]
+
+    fn set_data(self: Box<T>, new_data: T) -> Box<T> [
+        return Box { data: new_data }
+    ]
+]
+
+[
+    new int_box: Box<i32> = Box { data: 42 }
+    new str_box: Box<String> = Box { data: "Hello" }
+    
+    new val = int_box.get_data()
+    new new_box = int_box.set_data(100)
+
     return 0
 ]
 ```
@@ -358,9 +420,9 @@ struct Data [
 [
     new big_num ia = 999999999999999999
     new result = big_num * 2
-    
+
     print("大数计算：{result}")
-    
+
     return 0
 ]
 ```
@@ -371,9 +433,9 @@ struct Data [
 [
     new precise_pi fa = 3.141592653589793238462643383279502884197
     new area = precise_pi * 100 * 100
-    
+
     print("精确面积：{area}")
-    
+
     return 0
 ]
 ```
@@ -383,9 +445,65 @@ struct Data [
 ```catlang
 [
     new long_text sa = "这是一段非常长的文本，可以包含任意数量的字符..."
-    
+
     print("长度：{len(long_text)}")
-    
+
+    return 0
+]
+```
+
+### 任意位宽类型 (a8, a16, a32, a64, aa)
+
+CatLang 提供任意位宽类型，允许你指定特定位数的类型：
+
+```catlang
+[
+    ; 8 位任意类型
+    new x: a8 = 42
+    new byte_val: a8 = 0xFF
+
+    ; 16 位任意类型
+    new y: a16 = 1000
+    new short_val: a16 = 0x7FFF
+
+    ; 32 位任意类型
+    new z: a32 = 100000
+    new int_val: a32 = 0x7FFFFFFF
+
+    ; 64 位任意类型
+    new big: a64 = 9999999999
+    new long_val: a64 = 0x7FFFFFFFFFFFFFFF
+
+    ; 任意长度类型（理论上无限）
+    new huge: aa = 999999999999999999999
+    new massive: aa = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
+    return 0
+]
+```
+
+**使用场景：**
+
+```catlang
+; 硬件寄存器访问
+struct HardwareRegister [
+    control: a8      ; 8 位控制寄存器
+    status: a8       ; 8 位状态寄存器
+    data: a32        ; 32 位数据寄存器
+]
+
+; 网络协议包
+struct NetworkPacket [
+    version: a8      ; 版本号（4 位）+ 类型（4 位）
+    flags: a8        ; 标志位
+    length: a16      ; 包长度
+    checksum: a32    ; 校验和
+]
+
+[
+    new reg = HardwareRegister { control: 0x01, status: 0x00, data: 0x12345678 }
+    new packet = NetworkPacket { version: 0x45, flags: 0x02, length: 1500, checksum: 0xDEADBEEF }
+
     return 0
 ]
 ```
@@ -395,17 +513,17 @@ struct Data [
 ```catlang
 [
     new t timer
-    
+
     ; 启动定时器
     t.start()
-    
+
     ; 执行一些操作
     new result = expensive_computation()
-    
+
     ; 获取经过时间
     new elapsed = t.elapsed()
     print("耗时：{elapsed}ms")
-    
+
     return 0
 ]
 ```
@@ -580,6 +698,8 @@ fn create_node(value: i32) -> ListNode [
 1. 定义一个 `Book` 结构体，包含书名、作者、价格字段，并实现一个计算折扣价的方法
 2. 创建一个 3x3 矩阵并实现矩阵转置函数
 3. 使用 unsafe 块进行内存重解释，将浮点数 1.0 的位模式打印为整数
+4. 定义一个泛型结构体 `Pair<T, U>`，包含两个不同类型的字段，并实现交换方法
+5. 使用任意位宽类型定义一个网络数据包结构
 
 <details>
 <summary>参考答案</summary>
@@ -621,6 +741,43 @@ fn transpose(matrix: [[i32; 3]; 3]) -> [[i32; 3]; 3] [
     new float_val = 1.0
     new int_bits = m+i64 float_val
     print("1.0 的位模式：{int_bits}")
+    return 0
+]
+
+; 练习 4：泛型 Pair 结构体
+struct Pair<T, U> [
+    first: T
+    second: U
+]
+
+impl Pair<T, U> [
+    fn swap(self: Pair<T, U>) -> Pair<U, T> [
+        return Pair { first: self.second, second: self.first }
+    ]
+]
+
+[
+    new p: Pair<i32, String> = Pair { first: 42, second: "Hello" }
+    new swapped = p.swap()
+    return 0
+]
+
+; 练习 5：网络数据包
+struct NetworkPacket [
+    version: a8        ; 版本号（4 位）+ 类型（4 位）
+    flags: a8          ; 标志位
+    length: a16        ; 包长度
+    checksum: a32      ; 校验和
+    payload: [a8]      ; 动态载荷
+]
+
+[
+    new packet = NetworkPacket {
+        version: 0x45,
+        flags: 0x02,
+        length: 1500,
+        checksum: 0xDEADBEEF
+    }
     return 0
 ]
 ```

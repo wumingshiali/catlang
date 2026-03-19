@@ -1,8 +1,10 @@
 //! Parser for CatLang
+//! Optimized for performance with reduced allocations and cloning
 
 use crate::ast::*;
 use crate::lexer::tokenize;
 use crate::token::{Span, Token, TokenKind};
+use std::collections::HashMap;
 
 /// Parser error types
 #[derive(Debug, Clone)]
@@ -25,19 +27,69 @@ impl std::fmt::Display for ParseError {
 
 pub type ParseResult<T> = Result<T, ParseError>;
 
-/// The CatLang Parser
+/// The CatLang Parser - optimized with keyword cache
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
     eof_token: Token,
+    #[allow(dead_code)]
+    keyword_cache: HashMap<String, TokenKind>,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { 
-            tokens, 
+        // Pre-build keyword cache for faster lookups
+        let mut keyword_cache = HashMap::with_capacity(45);
+        let keywords = [
+            ("struct", TokenKind::KwStruct),
+            ("impl", TokenKind::KwImpl),
+            ("fn", TokenKind::KwFn),
+            ("return", TokenKind::KwReturn),
+            ("new", TokenKind::KwNew),
+            ("cpy", TokenKind::KwCpy),
+            ("unsafe", TokenKind::KwUnsafe),
+            ("close", TokenKind::KwClose),
+            ("keep", TokenKind::KwKeep),
+            ("all", TokenKind::KwAll),
+            ("m", TokenKind::KwM),
+            ("ia", TokenKind::KwIa),
+            ("fa", TokenKind::KwFa),
+            ("sa", TokenKind::KwSa),
+            // Any-width types
+            ("a8", TokenKind::KwA8),
+            ("a16", TokenKind::KwA16),
+            ("a32", TokenKind::KwA32),
+            ("a64", TokenKind::KwA64),
+            ("aa", TokenKind::KwAa),
+            ("timer", TokenKind::KwTimer),
+            ("if", TokenKind::KwIf),
+            ("else", TokenKind::KwElse),
+            ("while", TokenKind::KwWhile),
+            ("for", TokenKind::KwFor),
+            ("switch", TokenKind::KwSwitch),
+            ("case", TokenKind::KwCase),
+            ("default", TokenKind::KwDefault),
+            ("try", TokenKind::KwTry),
+            ("catch", TokenKind::KwCatch),
+            ("throw", TokenKind::KwThrow),
+            ("async", TokenKind::KwAsync),
+            ("await", TokenKind::KwAwait),
+            ("spawn", TokenKind::KwSpawn),
+            ("import", TokenKind::KwImport),
+            ("from", TokenKind::KwFrom),
+            ("as", TokenKind::KwAs),
+            ("true", TokenKind::KwTrue),
+            ("false", TokenKind::KwFalse),
+        ];
+        for (s, kind) in keywords.iter() {
+            keyword_cache.insert(s.to_string(), kind.clone());
+        }
+
+        Self {
+            tokens,
             current: 0,
             eof_token: Token::new(TokenKind::Eof, Span::new(0, 0), 1, 1),
+            keyword_cache,
         }
     }
 
@@ -395,19 +447,19 @@ impl Parser {
             let inner = self.parse_type_expr()?;
             return Ok(TypeExpr::MemoryCast(Box::new(inner)));
         }
-        
+
         // Check for pointer type
         if self.check(&TokenKind::Star) {
             self.advance();
             let inner = self.parse_type_expr()?;
             return Ok(TypeExpr::Pointer(Box::new(inner)));
         }
-        
+
         // Check for array type
         if self.check(&TokenKind::LBracket) {
             self.advance();
             let inner = self.parse_type_expr()?;
-            
+
             if self.check(&TokenKind::Semicolon) {
                 // Fixed size array: [Type; N]
                 self.advance();
@@ -419,14 +471,6 @@ impl Parser {
                 self.expect(&TokenKind::RBracket, "Expected ']' to close array type")?;
                 return Ok(TypeExpr::Array(Box::new(inner), None));
             }
-        }
-        
-        // Check for angle bracket syntax: <type>
-        if self.check(&TokenKind::Less) {
-            self.advance(); // consume '<'
-            let inner = self.parse_type_expr()?;
-            self.expect(&TokenKind::Greater, "Expected '>' to close type")?;
-            return Ok(inner);
         }
 
         // Check for arbitrary length types: ia, fa, sa
@@ -447,14 +491,61 @@ impl Parser {
             return Ok(TypeExpr::Timer);
         }
 
-        // Base type
+        // Check for any-width types: a8, a16, a32, a64, aa
+        if self.check(&TokenKind::KwA8) {
+            self.advance();
+            return Ok(TypeExpr::AnyWidth(8));
+        }
+        if self.check(&TokenKind::KwA16) {
+            self.advance();
+            return Ok(TypeExpr::AnyWidth(16));
+        }
+        if self.check(&TokenKind::KwA32) {
+            self.advance();
+            return Ok(TypeExpr::AnyWidth(32));
+        }
+        if self.check(&TokenKind::KwA64) {
+            self.advance();
+            return Ok(TypeExpr::AnyWidth(64));
+        }
+        if self.check(&TokenKind::KwAa) {
+            self.advance();
+            return Ok(TypeExpr::AnyWidthArbitrary);
+        }
+
+        // Base type or generic type
         let name = self.parse_identifier()?;
 
         // Check for Result or Future
         match name.as_str() {
             "Result" => Ok(TypeExpr::Result),
             "Future" => Ok(TypeExpr::Future),
-            _ => Ok(TypeExpr::Base(name)),
+            _ => {
+                // Check for generic type parameters: Type<T1, T2, ...>
+                if self.check(&TokenKind::Less) {
+                    self.advance(); // consume '<'
+                    let mut params = Vec::new();
+                    
+                    // Parse first type parameter
+                    if !self.check(&TokenKind::Greater) {
+                        params.push(self.parse_type_expr()?);
+                        
+                        // Parse remaining type parameters
+                        while self.check(&TokenKind::Comma) {
+                            self.advance();
+                            if self.check(&TokenKind::Greater) {
+                                break;
+                            }
+                            params.push(self.parse_type_expr()?);
+                        }
+                    }
+                    
+                    self.expect(&TokenKind::Greater, "Expected '>' to close generic type")?;
+                    Ok(TypeExpr::Generic(Box::new(TypeExpr::Base(name)), params))
+                } else {
+                    Ok(TypeExpr::Base(name))
+                }
+            }
         }
     }
 

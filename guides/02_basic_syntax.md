@@ -148,13 +148,55 @@ CatLang 提供以下内置类型：
 | `Result` | 结果类型 | `anyerror!void` |
 | `Future` | 未来类型 | `anyerror!void` |
 
+### 任意位宽类型
+
+CatLang 提供任意位宽类型，允许你指定位数的类型：
+
+| 类型 | 描述 | Zig 映射 |
+|------|------|---------|
+| `a8` | 任意 8 位类型 | `u8` |
+| `a16` | 任意 16 位类型 | `u16` |
+| `a32` | 任意 32 位类型 | `u32` |
+| `a64` | 任意 64 位类型 | `u64` |
+| `aa` | 任意/无限长度类型 | `u128` |
+
+```catlang
+[
+    ; 使用任意位宽类型
+    new x: a8 = 42          ; 8 位任意类型
+    new y: a16 = 1000       ; 16 位任意类型
+    new z: a32 = 100000     ; 32 位任意类型
+    new big: aa = 999999999 ; 任意长度类型
+
+    return 0
+]
+```
+
+### 泛型类型
+
+CatLang 支持泛型类型参数，使用 `<T>` 或 `<T1, T2, ...>` 语法：
+
+```catlang
+[
+    ; 单类型参数
+    new opt: Option<i32> = ...
+    new list: List<String> = ...
+
+    ; 多类型参数
+    new result: Result<i32, String> = ...
+    new map: HashMap<String, i32> = ...
+
+    return 0
+]
+```
+
 ```catlang
 [
     ; 使用特殊类型
     new big_int ia = 999999999999999
     new precise fa = 3.141592653589793238
     new long_text sa = "这是一段很长的文本..."
-    
+
     return 0
 ]
 ```

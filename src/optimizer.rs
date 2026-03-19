@@ -4,6 +4,8 @@
 //! - Constant folding
 //! - Dead code elimination
 //! - Algebraic simplification
+//!
+//! Optimized for performance with reduced allocations
 
 use crate::ast::*;
 use std::collections::HashMap;
@@ -20,7 +22,7 @@ impl Optimizer {
     /// Create a new optimizer with given optimization level
     pub fn new(opt_level: u8) -> Self {
         Optimizer {
-            constants: HashMap::new(),
+            constants: HashMap::with_capacity(32), // Pre-allocate for typical use
             opt_level: opt_level.min(3),
         }
     }
@@ -57,7 +59,8 @@ impl Optimizer {
 
     /// Optimize a block of statements
     fn optimize_block(&mut self, block: &mut Block) {
-        let mut new_statements = Vec::new();
+        // Pre-allocate with current size to avoid reallocations
+        let mut new_statements = Vec::with_capacity(block.statements.len());
 
         for stmt in block.statements.drain(..) {
             match stmt {

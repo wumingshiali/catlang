@@ -1,6 +1,8 @@
 //! Zig Code Generator for CatLang
+//! Optimized for performance with reduced allocations
 
 use crate::ast::*;
+use std::fmt::Write;
 
 /// Code generation error types
 #[derive(Debug, Clone)]
@@ -16,19 +18,20 @@ impl std::fmt::Display for CodeGenError {
 
 pub type CodeGenResult<T> = Result<T, CodeGenError>;
 
-/// Zig code generator
+/// Zig code generator - optimized with pre-allocated buffer
 pub struct ZigCodeGen {
     output: String,
     indent_level: usize,
-    mutated_vars: std::collections::HashSet<String>, // Variables that are reassigned
+    mutated_vars: std::collections::HashSet<String>,
 }
 
 impl ZigCodeGen {
     pub fn new() -> Self {
+        // Pre-allocate output buffer with reasonable size
         Self {
-            output: String::new(),
+            output: String::with_capacity(8192),
             indent_level: 0,
-            mutated_vars: std::collections::HashSet::new(),
+            mutated_vars: std::collections::HashSet::with_capacity(64),
         }
     }
 
@@ -391,13 +394,16 @@ impl ZigCodeGen {
             return String::new();
         }
 
-        let mut result = String::new();
+        // Pre-calculate approximate size
+        let estimated_size = params.len() * 20;
+        let mut result = String::with_capacity(estimated_size);
+        
         for (i, param) in params.iter().enumerate() {
             if i > 0 {
                 result.push_str(", ");
             }
             let zig_type = param.param_type.to_zig_type();
-            result.push_str(&format!("{}: {}", param.name, zig_type));
+            let _ = write!(result, "{}: {}", param.name, zig_type);
         }
         result
     }
@@ -960,23 +966,33 @@ impl ZigCodeGen {
             Literal::Int(s) => Ok(s.clone()),
             Literal::Float(s) => Ok(s.clone()),
             Literal::String(s) => {
-                // Escape special characters for Zig
-                let escaped = s
-                    .replace('\\', "\\\\")
-                    .replace('\n', "\\n")
-                    .replace('\r', "\\r")
-                    .replace('\t', "\\t")
-                    .replace('"', "\\\"");
+                // Escape special characters for Zig - optimized with pre-allocation
+                let mut escaped = String::with_capacity(s.len() + 10);
+                for ch in s.chars() {
+                    match ch {
+                        '\\' => escaped.push_str("\\\\"),
+                        '\n' => escaped.push_str("\\n"),
+                        '\r' => escaped.push_str("\\r"),
+                        '\t' => escaped.push_str("\\t"),
+                        '"' => escaped.push_str("\\\""),
+                        _ => escaped.push(ch),
+                    }
+                }
                 Ok(format!("\"{}\"", escaped))
             }
             Literal::InterpolatedString(s) => {
-                // Escape special characters for Zig
-                let escaped = s
-                    .replace('\\', "\\\\")
-                    .replace('\n', "\\n")
-                    .replace('\r', "\\r")
-                    .replace('\t', "\\t")
-                    .replace('"', "\\\"");
+                // Escape special characters for Zig - optimized with pre-allocation
+                let mut escaped = String::with_capacity(s.len() + 10);
+                for ch in s.chars() {
+                    match ch {
+                        '\\' => escaped.push_str("\\\\"),
+                        '\n' => escaped.push_str("\\n"),
+                        '\r' => escaped.push_str("\\r"),
+                        '\t' => escaped.push_str("\\t"),
+                        '"' => escaped.push_str("\\\""),
+                        _ => escaped.push(ch),
+                    }
+                }
                 Ok(format!("\"{}\"", escaped))
             }
             Literal::Bool(b) => Ok(if *b { "true" } else { "false" }.to_string()),
@@ -984,8 +1000,10 @@ impl ZigCodeGen {
     }
 
     fn writeln(&mut self, line: &str) {
+        // Pre-calculate indentation
+        const INDENT: &str = "    ";
         for _ in 0..self.indent_level {
-            self.output.push_str("    ");
+            self.output.push_str(INDENT);
         }
         self.output.push_str(line);
         self.output.push('\n');
@@ -994,17 +1012,19 @@ impl ZigCodeGen {
     /// Optimized print format conversion - converts CatLang {var} to Zig {}
     /// Note: The input string is already escaped by generate_literal
     fn convert_print_format(&self, format_str: &str) -> Result<String, CodeGenError> {
+        // Pre-allocate with estimated capacity
         let mut result = String::with_capacity(format_str.len());
-        let mut vars = Vec::new();
+        let mut vars = Vec::with_capacity(4); // Typical case has few variables
 
         // Skip opening and closing quotes
         let content = format_str.trim_start_matches('"').trim_end_matches('"');
 
         let mut i = 0;
-        while i < content.len() {
-            if content[i..].starts_with('{') {
+        let bytes = content.as_bytes();
+        while i < bytes.len() {
+            if bytes[i] == b'{' {
                 // Check for escaped {{
-                if i + 1 < content.len() && content[i + 1..].starts_with('{') {
+                if i + 1 < bytes.len() && bytes[i + 1] == b'{' {
                     result.push('{');
                     i += 2;
                     continue;
@@ -1022,9 +1042,8 @@ impl ZigCodeGen {
                 }
             }
 
-            if i < content.len() {
-                let ch = content.as_bytes()[i] as char;
-                result.push(ch);
+            if i < bytes.len() {
+                result.push(bytes[i] as char);
                 i += 1;
             }
         }
@@ -1032,12 +1051,10 @@ impl ZigCodeGen {
         if vars.is_empty() {
             Ok(format!("print(\"{}\", .{{}})", result))
         } else {
-            Ok(format!("print(\"{}\", .{{ {} }})", result, vars.join(", ")))
+            // Pre-allocate vars string
+            let vars_str = vars.join(", ");
+            Ok(format!("print(\"{}\", .{{ {} }})", result, vars_str))
         }
-    }
-
-    fn ends_with_return(&self) -> bool {
-        self.output.trim_end().ends_with("return;") || self.output.trim_end().ends_with('}')
     }
 }
 

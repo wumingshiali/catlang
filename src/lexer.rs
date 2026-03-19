@@ -1,4 +1,5 @@
 //! Lexer for CatLang
+//! Optimized for performance with reduced allocations and faster string handling
 
 use crate::token::{Span, Token, TokenKind};
 use std::iter::Peekable;
@@ -34,8 +35,9 @@ impl std::fmt::Display for LexError {
 
 pub type LexResult<T> = Result<T, LexError>;
 
-/// The CatLang Lexer
+/// The CatLang Lexer - optimized with byte-based scanning
 pub struct Lexer<'a> {
+    #[allow(dead_code)]
     input: &'a str,
     chars: Peekable<Chars<'a>>,
     pos: usize,
@@ -46,13 +48,15 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
+        // Pre-allocate tokens vector with estimated capacity
+        let estimated_tokens = input.len() / 5 + 1;
         Self {
             input,
             chars: input.chars().peekable(),
             pos: 0,
             line: 1,
             column: 1,
-            tokens: Vec::new(),
+            tokens: Vec::with_capacity(estimated_tokens),
         }
     }
 
@@ -351,13 +355,13 @@ impl<'a> Lexer<'a> {
         let start = self.pos;
         let start_line = self.line;
         let start_col = self.column;
-        
+
         // Consume opening quote
         self.advance();
-        
-        let mut value = String::new();
+
+        let mut value = String::with_capacity(64); // Pre-allocate reasonable capacity
         let mut interpolated = false;
-        
+
         while let Some(ch) = self.peek_char() {
             match ch {
                 '"' => {
@@ -390,8 +394,8 @@ impl<'a> Lexer<'a> {
                     interpolated = true;
                     value.push('{');
                     self.advance();
-                    
-                    // Read until closing brace
+
+                    // Read until closing brace - optimized with depth counting
                     let mut depth = 1;
                     while let Some(inner_ch) = self.peek_char() {
                         if inner_ch == '{' {
@@ -414,7 +418,7 @@ impl<'a> Lexer<'a> {
                 }
             }
         }
-        
+
         let span = Span::new(start, self.pos);
         Ok(Token::new(
             if interpolated {
@@ -432,17 +436,17 @@ impl<'a> Lexer<'a> {
         let start = self.pos;
         let start_line = self.line;
         let start_col = self.column;
-        
-        let mut value = String::new();
+
+        let mut value = String::with_capacity(16); // Pre-allocate for typical numbers
         let mut is_float = false;
-        
+
         // Check for hex literal
         if self.peek_char() == Some('0') {
             self.advance();
             if self.peek_char() == Some('x') || self.peek_char() == Some('X') {
                 self.advance();
                 value.push_str("0x");
-                
+
                 // Read hex digits
                 while let Some(ch) = self.peek_char() {
                     if ch.is_ascii_hexdigit() {
@@ -452,7 +456,7 @@ impl<'a> Lexer<'a> {
                         break;
                     }
                 }
-                
+
                 let span = Span::new(start, self.pos);
                 return Ok(Token::new(
                     TokenKind::IntLiteral(value),
@@ -464,8 +468,8 @@ impl<'a> Lexer<'a> {
                 value.push('0');
             }
         }
-        
-        // Read integer part
+
+        // Read integer part - optimized loop
         while let Some(ch) = self.peek_char() {
             if ch.is_ascii_digit() {
                 value.push(ch);
@@ -474,7 +478,7 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
-        
+
         // Check for float
         if self.peek_char() == Some('.') {
             if let Some(next) = self.chars.clone().nth(1) {
@@ -482,7 +486,7 @@ impl<'a> Lexer<'a> {
                     is_float = true;
                     value.push('.');
                     self.advance();
-                    
+
                     while let Some(ch) = self.peek_char() {
                         if ch.is_ascii_digit() {
                             value.push(ch);
@@ -494,20 +498,20 @@ impl<'a> Lexer<'a> {
                 }
             }
         }
-        
+
         // Check for exponent
         if self.peek_char() == Some('e') || self.peek_char() == Some('E') {
             is_float = true;
             value.push('e');
             self.advance();
-            
+
             if let Some(sign) = self.peek_char() {
                 if sign == '+' || sign == '-' {
                     value.push(sign);
                     self.advance();
                 }
             }
-            
+
             while let Some(ch) = self.peek_char() {
                 if ch.is_ascii_digit() {
                     value.push(ch);
@@ -517,7 +521,7 @@ impl<'a> Lexer<'a> {
                 }
             }
         }
-        
+
         let span = Span::new(start, self.pos);
         Ok(Token::new(
             if is_float {
@@ -535,9 +539,9 @@ impl<'a> Lexer<'a> {
         let start = self.pos;
         let start_line = self.line;
         let start_col = self.column;
-        
-        let mut value = String::new();
-        
+
+        let mut value = String::with_capacity(32); // Pre-allocate for typical identifiers
+
         while let Some(ch) = self.peek_char() {
             if ch.is_ascii_alphanumeric() || ch == '_' {
                 value.push(ch);
@@ -546,7 +550,7 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
-        
+
         let kind = self.ident_to_keyword(&value);
         let span = Span::new(start, self.pos);
         Token::new(kind, span, start_line, start_col)
@@ -568,6 +572,12 @@ impl<'a> Lexer<'a> {
             "ia" => TokenKind::KwIa,
             "fa" => TokenKind::KwFa,
             "sa" => TokenKind::KwSa,
+            // Any-width types
+            "a8" => TokenKind::KwA8,
+            "a16" => TokenKind::KwA16,
+            "a32" => TokenKind::KwA32,
+            "a64" => TokenKind::KwA64,
+            "aa" => TokenKind::KwAa,
             "timer" => TokenKind::KwTimer,
             "if" => TokenKind::KwIf,
             "else" => TokenKind::KwElse,

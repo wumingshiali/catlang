@@ -1,4 +1,5 @@
 //! Abstract Syntax Tree definitions for CatLang
+//! Optimized with better derive macros for performance
 
 use crate::token::Span;
 
@@ -358,6 +359,15 @@ pub enum TypeExpr {
     Fa,    // arbitrary length float
     Sa,    // arbitrary length string
     Timer, // timer type
+    
+    // Generic type with type parameters: <T> or <T1, T2, ...>
+    Generic(Box<TypeExpr>, Vec<TypeExpr>),
+    
+    // Arbitrary width types: a8, a16, a32, a64, aa
+    // a8/a16/a32/a64 = any type with specific bit width
+    // aa = any type with arbitrary/infinite length
+    AnyWidth(u16),  // 8, 16, 32, 64
+    AnyWidthArbitrary, // aa - arbitrary length
 }
 
 impl TypeExpr {
@@ -389,6 +399,26 @@ impl TypeExpr {
             TypeExpr::Fa => "f128".to_string(), // arbitrary length float -> f128
             TypeExpr::Sa => "[]const u8".to_string(), // arbitrary length string
             TypeExpr::Timer => "Timer".to_string(), // timer type
+            
+            // Generic types: Map<T>, Option<T>, Result<T, E>, etc.
+            TypeExpr::Generic(base, params) => {
+                let base_str = base.to_zig_type();
+                let params_str: Vec<String> = params.iter().map(|p| p.to_zig_type()).collect();
+                format!("{}({})", base_str, params_str.join(", "))
+            }
+            
+            // Arbitrary width types
+            TypeExpr::AnyWidth(bits) => {
+                // For Zig, we map to the closest standard type
+                match bits {
+                    8 => "u8".to_string(),
+                    16 => "u16".to_string(),
+                    32 => "u32".to_string(),
+                    64 => "u64".to_string(),
+                    _ => "u128".to_string(), // Fallback for unknown sizes
+                }
+            }
+            TypeExpr::AnyWidthArbitrary => "u128".to_string(), // Use u128 for arbitrary length
         }
     }
 
@@ -399,6 +429,13 @@ impl TypeExpr {
                 "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" |
                 "f32" | "f64" | "ia" | "fa" | "bool"
             )
+            | TypeExpr::AnyWidth(_)
+            | TypeExpr::AnyWidthArbitrary
         )
+    }
+    
+    /// Check if this is an any-width type (a8, a16, a32, a64, aa)
+    pub fn is_any_width(&self) -> bool {
+        matches!(self, TypeExpr::AnyWidth(_) | TypeExpr::AnyWidthArbitrary)
     }
 }

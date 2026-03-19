@@ -15,3 +15,23 @@ path = "src/main.rs"
 [lib]
 name = "catlang"
 path = "src/lib.rs"
+
+# Release build optimizations
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Fast release build for development
+[profile.release-fast]
+inherits = "release"
+lto = false
+codegen-units = 16
+strip = false
+
+# Debug build with optimizations
+[profile.dev-opt]
+inherits = "dev"
+opt-level = 1

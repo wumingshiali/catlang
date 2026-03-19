@@ -11,17 +11,19 @@
 | [02](02_basic_syntax.md) | 基础语法 | 变量、类型、运算符、注释 |
 | [03](03_control_flow.md) | 控制流 | 条件、循环、模式匹配 |
 | [04](04_functions.md) | 函数 | 定义、参数、返回值、异步函数 |
-| [05](05_data_structures.md) | 数据结构 | 结构体、数组、指针 |
+| [05](05_data_structures.md) | 数据结构 | 结构体、数组、指针、泛型 |
 | [06](06_error_handling.md) | 错误处理 | try/catch、throw、自定义错误 |
 | [07](07_memory_management.md) | 内存管理 | unsafe 块、内存重解释、cpy |
 | [08](08_concurrency.md) | 并发编程 | async/await、spawn 任务 |
 | [09](09_modules_imports.md) | 模块与导入 | 第三方库导入、模块组织 |
 | [10](10_best_practices.md) | 最佳实践 | 代码风格、常见陷阱、性能提示 |
+| [11](11_type_system.md) | 类型系统深入 | 泛型类型、任意位宽类型 |
 
 ## 快速导航
 
 - **新手入门**：从 [第 00 章](00_base_env.md) 开始配置环境
 - **查阅语法**：参考 [基础语法](02_basic_syntax.md) 或 [语法规范](../syntax.txt)
+- **类型系统**：查看 [类型系统深入](11_type_system.md) 了解泛型和任意位宽类型
 - **示例代码**：查看 `benchmark/` 和 `test/` 目录
 
 ## 关于 CatLang
@@ -32,3 +34,4 @@ CatLang 是一门注重以下设计原则的系统级编程语言：
 2. **按需导入** - 仅第三方库需要显式导入
 3. **安全与控制平衡** - 默认安全，通过 `unsafe` 提供底层控制
 4. **高辨识度语法** - 方括号代码块 `[]`，分号注释 `;`
+5. **灵活的类型系统** - 支持泛型类型和任意位宽类型
