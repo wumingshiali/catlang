@@ -1,12 +1,12 @@
-# 第 05 章：数据结构
+# Chapter 05: Data Structures
 
-本章介绍 CatLang 的数据结构：结构体、数组、指针和内存操作。
+This chapter introduces CatLang's data structures: structs, arrays, pointers, and memory operations.
 
-## 5.1 结构体 (struct)
+## 5.1 Structs
 
-### 定义结构体
+### Define a Struct
 
-使用 `struct` 关键字定义结构体：
+Define a struct using the `struct` keyword:
 
 ```catlang
 struct Person [
@@ -16,7 +16,7 @@ struct Person [
 ]
 ```
 
-### 创建实例
+### Create Instances
 
 ```catlang
 struct Point [
@@ -30,7 +30,7 @@ struct Point [
 ]
 ```
 
-### 访问字段
+### Access Fields
 
 ```catlang
 struct Rectangle [
@@ -41,11 +41,11 @@ struct Rectangle [
 [
     new rect = Rectangle { width: 10.5, height: 5.0 }
 
-    ; 访问字段
+    ; Access fields
     new w = rect.width
     new h = rect.height
 
-    ; 修改字段
+    ; Modify fields
     rect.width = 15.0
     rect.height = 8.0
 
@@ -53,12 +53,12 @@ struct Rectangle [
 ]
 ```
 
-### 泛型结构体
+### Generic Structs
 
-CatLang 支持泛型结构体，允许在结构体定义中使用类型参数：
+CatLang supports generic structs, allowing type parameters in struct definitions:
 
 ```catlang
-; 定义泛型结构体
+; Define generic struct
 struct Option<T> [
     value: T
     has_value: bool
@@ -76,12 +76,12 @@ struct Container<T> [
 ]
 
 [
-    ; 使用泛型结构体
+    ; Use generic structs
     new opt_int: Option<i32> = Option { value: 42, has_value: true }
     new opt_str: Option<String> = Option { value: "Hello", has_value: true }
-    
+
     new res: Result<i32, String> = Result { ok: 100, err: "", is_ok: true }
-    
+
     new container: Container<f64> = Container { item: 3.14, count: 1 }
 
     return 0
@@ -89,7 +89,7 @@ struct Container<T> [
 ```
 
 ```catlang
-; 泛型结构体方法
+; Generic struct methods
 struct Box<T> [
     data: T
 ]
@@ -107,7 +107,7 @@ impl Box<T> [
 [
     new int_box: Box<i32> = Box { data: 42 }
     new str_box: Box<String> = Box { data: "Hello" }
-    
+
     new val = int_box.get_data()
     new new_box = int_box.set_data(100)
 
@@ -115,9 +115,9 @@ impl Box<T> [
 ]
 ```
 
-## 5.2 结构体方法 (impl)
+## 5.2 Struct Methods (impl)
 
-使用 `impl` 块为结构体定义方法：
+Define methods for structs using `impl` blocks:
 
 ```catlang
 struct Circle [
@@ -129,12 +129,12 @@ impl Circle [
         new pi = 3.14159265359
         return pi * self.radius * self.radius
     ]
-    
+
     fn circumference(self: Circle) -> f64 [
         new pi = 3.14159265359
         return 2 * pi * self.radius
     ]
-    
+
     fn scale(self: Circle, factor: f64) -> Circle [
         return Circle { radius: self.radius * factor }
     ]
@@ -144,197 +144,197 @@ impl Circle [
     new c = Circle { radius: 5.0 }
     new a = c.area()
     new c2 = c.scale(2.0)
-    
-    print("面积：{a}")
-    print("放大后半径：{c2.radius}")
-    
+
+    print("Area: {a}")
+    print("Radius after scaling: {c2.radius}")
+
     return 0
 ]
 ```
 
-## 5.3 数组
+## 5.3 Arrays
 
-### 动态数组
+### Dynamic Arrays
 
 ```catlang
 [
-    ; 声明动态数组
+    ; Declare dynamic array
     new arr [i32]
-    
-    ; 声明并初始化
+
+    ; Declare and initialize
     new nums = [1, 2, 3, 4, 5]
-    
-    ; 访问元素
+
+    ; Access elements
     new first = nums[0]
     new second = nums[1]
-    
-    ; 修改元素
+
+    ; Modify elements
     nums[0] = 10
-    
+
     return 0
 ]
 ```
 
-### 固定大小数组
+### Fixed-Size Arrays
 
 ```catlang
 [
-    ; 固定大小数组
+    ; Fixed-size array
     new fixed [i32; 5]
-    
-    ; 初始化
+
+    ; Initialize
     fixed[0] = 1
     fixed[1] = 2
     fixed[2] = 3
     fixed[3] = 4
     fixed[4] = 5
-    
-    ; 或者使用字面量
+
+    ; Or use literal
     new colors = ["red", "green", "blue"]
-    
+
     return 0
 ]
 ```
 
-### 多维数组
+### Multi-dimensional Arrays
 
 ```catlang
 [
-    ; 3x3 矩阵
+    ; 3x3 matrix
     new matrix [[i32; 3]; 3]
-    
-    ; 初始化
+
+    ; Initialize
     matrix[0][0] = 1
     matrix[0][1] = 2
     matrix[0][2] = 3
     matrix[1][0] = 4
     ; ...
-    
-    ; 访问
+
+    ; Access
     new val = matrix[1][2]
-    
+
     return 0
 ]
 ```
 
-### 数组遍历
+### Array Traversal
 
 ```catlang
 [
     new arr = [10, 20, 30, 40, 50]
     new sum = 0
-    
+
     for (new i = 0, i < 5, i += 1) [
         sum = sum + arr[i]
     ]
-    
-    print("数组和：{sum}")  ; 输出：150
-    
+
+    print("Array sum: {sum}")  ; Output: 150
+
     return 0
 ]
 ```
 
-## 5.4 指针
+## 5.4 Pointers
 
-### 指针声明
+### Pointer Declaration
 
 ```catlang
 [
-    ; 声明指针
+    ; Declare pointer
     new ptr *i32
-    
-    ; 声明并初始化
+
+    ; Declare and initialize
     new x = 42
-    new ptr2 = &x  ; 假设 & 是取地址符
-    
+    new ptr2 = &x  ; Assuming & is address-of operator
+
     return 0
 ]
 ```
 
-### 解引用
+### Dereference
 
 ```catlang
 [
     new value = 100
     new ptr *i32 = &value
-    
-    ; 解引用访问
+
+    ; Dereference access
     new deref = *ptr
-    
-    print("值：{dereF}")  ; 输出：100
-    
+
+    print("Value: {deref}")  ; Output: 100
+
     return 0
 ]
 ```
 
-### 指针运算（unsafe）
+### Pointer Arithmetic (unsafe)
 
 ```catlang
 [
     new arr = [10, 20, 30, 40, 50]
     new ptr *i32 = &arr[0]
-    
+
     unsafe close(bounds) [
-        ; 指针算术（谨慎使用）
+        ; Pointer arithmetic (use with caution)
         new val1 = *ptr
-        ; ptr = ptr + 1  ; 移动到下一个元素
+        ; ptr = ptr + 1  ; Move to next element
         ; new val2 = *ptr
     ]
-    
+
     return 0
 ]
 ```
 
-## 5.5 内存重解释
+## 5.5 Memory Reinterpretation
 
-使用 `m+` 进行物理位重解释：
+Use `m+` for physical bit reinterpretation:
 
-### 整数到浮点数
+### Integer to Float
 
 ```catlang
 [
-    ; IEEE 754 双精度表示
+    ; IEEE 754 double precision representation
     new int_rep = 0x3FF0000000000000
     new pi_val = m+f64 int_rep
-    
-    print("重解释后的值：{pi_val}")  ; 约等于 1.0
-    
+
+    print("Reinterpreted value: {pi_val}")  ; Approximately 1.0
+
     return 0
 ]
 ```
 
-### 浮点数到整数
+### Float to Integer
 
 ```catlang
 [
     new float_val = 2.0
     new int_val = m+i64 float_val
-    
-    print("位模式：{int_val}")
-    
+
+    print("Bit pattern: {int_val}")
+
     return 0
 ]
 ```
 
-## 5.6 内存复制 (cpy)
+## 5.6 Memory Copy (cpy)
 
-使用 `cpy` 进行内存复制：
+Use `cpy` for memory copying:
 
 ```catlang
 [
     new source = 42
     new dest i32
-    
-    ; 复制 4 字节（i32 大小）
+
+    ; Copy 4 bytes (i32 size)
     cpy dest i32(source)
-    
-    print("目标值：{dest}")  ; 输出：42
-    
+
+    print("Destination value: {dest}")  ; Output: 42
+
     return 0
 ]
 ```
 
-### 复制结构体
+### Copy Structs
 
 ```catlang
 struct Data [
@@ -345,136 +345,136 @@ struct Data [
 [
     new src = Data { a: 10, b: 20 }
     new dst Data
-    
+
     cpy dst Data(src)
-    
+
     print("dst.a = {dst.a}, dst.b = {dst.b}")
-    
+
     return 0
 ]
 ```
 
-## 5.7 Unsafe 块
+## 5.7 Unsafe Blocks
 
-### 关闭安全检查
+### Disable Safety Checks
 
 ```catlang
 [
     new arr = [1, 2, 3]
-    
+
     unsafe close(bounds) [
-        ; 关闭边界检查
-        new val = arr[100]  ; 不会触发边界检查错误
+        ; Disable bounds checking
+        new val = arr[100]  ; Won't trigger bounds check error
     ]
-    
+
     return 0
 ]
 ```
 
-### 关闭初始化检查
+### Disable Initialization Check
 
 ```catlang
 [
     unsafe close(init) [
         new uninitialized i32
-        ; 使用未初始化的变量（危险！）
+        ; Use uninitialized variable (dangerous!)
         print("{uninitialized}")
     ]
-    
+
     return 0
 ]
 ```
 
-### 完全关闭安全检查
+### Disable All Safety Checks
 
 ```catlang
 [
     unsafe all [
-        ; 关闭所有安全检查
+        ; Disable all safety checks
         new raw = m+*i32 0x1000
         print("{*raw}")
     ]
-    
+
     return 0
 ]
 ```
 
-### 保持特定检查
+### Keep Specific Checks
 
 ```catlang
 [
     unsafe keep(lifetime) [
-        ; 只保持生命周期检查，关闭其他
-        ; 进行底层操作
+        ; Only keep lifetime checks, disable others
+        ; Perform low-level operations
     ]
-    
+
     return 0
 ]
 ```
 
-## 5.8 特殊类型
+## 5.8 Special Types
 
-### 任意长度整数 (ia)
+### Arbitrary Length Integer (ia)
 
 ```catlang
 [
     new big_num ia = 999999999999999999
     new result = big_num * 2
 
-    print("大数计算：{result}")
+    print("Big number calculation: {result}")
 
     return 0
 ]
 ```
 
-### 任意长度浮点 (fa)
+### Arbitrary Length Float (fa)
 
 ```catlang
 [
     new precise_pi fa = 3.141592653589793238462643383279502884197
     new area = precise_pi * 100 * 100
 
-    print("精确面积：{area}")
+    print("Precise area: {area}")
 
     return 0
 ]
 ```
 
-### 任意长度字符串 (sa)
+### Arbitrary Length String (sa)
 
 ```catlang
 [
-    new long_text sa = "这是一段非常长的文本，可以包含任意数量的字符..."
+    new long_text sa = "This is a very long text that can contain any number of characters..."
 
-    print("长度：{len(long_text)}")
+    print("Length: {len(long_text)}")
 
     return 0
 ]
 ```
 
-### 任意位宽类型 (a8, a16, a32, a64, aa)
+### Arbitrary Bit-Width Types (a8, a16, a32, a64, aa)
 
-CatLang 提供任意位宽类型，允许你指定特定位数的类型：
+CatLang provides arbitrary bit-width types, allowing you to specify types with specific bit counts:
 
 ```catlang
 [
-    ; 8 位任意类型
+    ; 8-bit arbitrary type
     new x: a8 = 42
     new byte_val: a8 = 0xFF
 
-    ; 16 位任意类型
+    ; 16-bit arbitrary type
     new y: a16 = 1000
     new short_val: a16 = 0x7FFF
 
-    ; 32 位任意类型
+    ; 32-bit arbitrary type
     new z: a32 = 100000
     new int_val: a32 = 0x7FFFFFFF
 
-    ; 64 位任意类型
+    ; 64-bit arbitrary type
     new big: a64 = 9999999999
     new long_val: a64 = 0x7FFFFFFFFFFFFFFF
 
-    ; 任意长度类型（理论上无限）
+    ; Arbitrary length type (theoretically infinite)
     new huge: aa = 999999999999999999999
     new massive: aa = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
@@ -482,22 +482,22 @@ CatLang 提供任意位宽类型，允许你指定特定位数的类型：
 ]
 ```
 
-**使用场景：**
+**Use Cases:**
 
 ```catlang
-; 硬件寄存器访问
+; Hardware register access
 struct HardwareRegister [
-    control: a8      ; 8 位控制寄存器
-    status: a8       ; 8 位状态寄存器
-    data: a32        ; 32 位数据寄存器
+    control: a8      ; 8-bit control register
+    status: a8       ; 8-bit status register
+    data: a32        ; 32-bit data register
 ]
 
-; 网络协议包
+; Network protocol packet
 struct NetworkPacket [
-    version: a8      ; 版本号（4 位）+ 类型（4 位）
-    flags: a8        ; 标志位
-    length: a16      ; 包长度
-    checksum: a32    ; 校验和
+    version: a8      ; Version (4 bits) + Type (4 bits)
+    flags: a8        ; Flags
+    length: a16      ; Packet length
+    checksum: a32    ; Checksum
 ]
 
 [
@@ -508,29 +508,29 @@ struct NetworkPacket [
 ]
 ```
 
-### 定时器 (timer)
+### Timer (timer)
 
 ```catlang
 [
     new t timer
 
-    ; 启动定时器
+    ; Start timer
     t.start()
 
-    ; 执行一些操作
+    ; Perform some operations
     new result = expensive_computation()
 
-    ; 获取经过时间
+    ; Get elapsed time
     new elapsed = t.elapsed()
-    print("耗时：{elapsed}ms")
+    print("Elapsed: {elapsed}ms")
 
     return 0
 ]
 ```
 
-## 5.9 综合示例
+## 5.9 Comprehensive Examples
 
-### 示例 1：学生管理系统
+### Example 1: Student Management System
 
 ```catlang
 struct Student [
@@ -543,7 +543,7 @@ impl Student [
     fn is_passing(self: Student) -> bool [
         return self.grade >= 60.0
     ]
-    
+
     fn get_letter_grade(self: Student) -> str [
         if (self.grade >= 90) [
             return "A"
@@ -563,25 +563,25 @@ impl Student [
     new s1 = Student { id: 1, name: "Alice", grade: 95.5 }
     new s2 = Student { id: 2, name: "Bob", grade: 72.0 }
     new s3 = Student { id: 3, name: "Charlie", grade: 58.0 }
-    
-    print("{s1.name} 的成绩：{s1.get_letter_grade()}")
-    print("{s2.name} 的成绩：{s2.get_letter_grade()}")
-    print("{s3.name} 的成绩：{s3.get_letter_grade()}")
-    
+
+    print("{s1.name}'s grade: {s1.get_letter_grade()}")
+    print("{s2.name}'s grade: {s2.get_letter_grade()}")
+    print("{s3.name}'s grade: {s3.get_letter_grade()}")
+
     if (s1.is_passing()) [
-        print("{s1.name} 及格")
+        print("{s1.name} passed")
     ]
     if (s3.is_passing()) [
-        print("{s3.name} 及格")
+        print("{s3.name} passed")
     ] else [
-        print("{s3.name} 不及格")
+        print("{s3.name} failed")
     ]
-    
+
     return 0
 ]
 ```
 
-### 示例 2：向量运算
+### Example 2: Vector Operations
 
 ```catlang
 struct Vector3 [
@@ -594,7 +594,7 @@ impl Vector3 [
     fn magnitude(self: Vector3) -> f64 [
         return sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
     ]
-    
+
     fn normalize(self: Vector3) -> Vector3 [
         new mag = self.magnitude()
         return Vector3 {
@@ -603,7 +603,7 @@ impl Vector3 [
             z: self.z / mag
         }
     ]
-    
+
     fn dot(self: Vector3, other: Vector3) -> f64 [
         return self.x * other.x + self.y * other.y + self.z * other.z
     ]
@@ -620,47 +620,47 @@ fn add_vectors(a: Vector3, b: Vector3) -> Vector3 [
 [
     new v1 = Vector3 { x: 1.0, y: 2.0, z: 3.0 }
     new v2 = Vector3 { x: 4.0, y: 5.0, z: 6.0 }
-    
+
     new sum = add_vectors(v1, v2)
     new dot_product = v1.dot(v2)
     new mag = v1.magnitude()
-    
-    print("向量和：({sum.x}, {sum.y}, {sum.z})")
-    print("点积：{dot_product}")
-    print("模长：{mag}")
-    
+
+    print("Vector sum: ({sum.x}, {sum.y}, {sum.z})")
+    print("Dot product: {dot_product}")
+    print("Magnitude: {mag}")
+
     return 0
 ]
 ```
 
-### 示例 3：动态数组操作
+### Example 3: Dynamic Array Operations
 
 ```catlang
-; 注意：以下是伪代码，实际实现依赖标准库
+; Note: The following is pseudo-code, actual implementation depends on standard library
 [
-    ; 创建动态数组
+    ; Create dynamic array
     new nums = [1, 2, 3, 4, 5]
-    
-    ; 添加元素
+
+    ; Add elements
     nums.push(6)
     nums.push(7)
-    
-    ; 删除元素
+
+    ; Remove element
     nums.pop()
-    
-    ; 获取长度
+
+    ; Get length
     new len = len(nums)
-    
-    ; 遍历
+
+    ; Traverse
     for (new i = 0, i < len, i += 1) [
         print("nums[{i}] = {nums[i]}")
     ]
-    
+
     return 0
 ]
 ```
 
-### 示例 4：链表节点
+### Example 4: Linked List Node
 
 ```catlang
 struct ListNode [
@@ -673,39 +673,39 @@ fn create_node(value: i32) -> ListNode [
 ]
 
 [
-    ; 创建链表节点
+    ; Create linked list nodes
     new node1 = create_node(10)
     new node2 = create_node(20)
     new node3 = create_node(30)
-    
-    ; 链接节点
+
+    ; Link nodes
     node1.next = &node2
     node2.next = &node3
-    
-    ; 遍历链表
+
+    ; Traverse linked list
     new current = &node1
     while (current != null) [
         print("{current.value}")
         current = current.next
     ]
-    
+
     return 0
 ]
 ```
 
-## 5.10 练习
+## 5.10 Exercises
 
-1. 定义一个 `Book` 结构体，包含书名、作者、价格字段，并实现一个计算折扣价的方法
-2. 创建一个 3x3 矩阵并实现矩阵转置函数
-3. 使用 unsafe 块进行内存重解释，将浮点数 1.0 的位模式打印为整数
-4. 定义一个泛型结构体 `Pair<T, U>`，包含两个不同类型的字段，并实现交换方法
-5. 使用任意位宽类型定义一个网络数据包结构
+1. Define a `Book` struct with title, author, and price fields, and implement a method to calculate discounted price
+2. Create a 3x3 matrix and implement a matrix transpose function
+3. Use unsafe blocks to perform memory reinterpretation and print the bit pattern of float 1.0 as an integer
+4. Define a generic struct `Pair<T, U>` with two fields of different types, and implement a swap method
+5. Use arbitrary bit-width types to define a network packet struct
 
 <details>
-<summary>参考答案</summary>
+<summary>Reference Answers</summary>
 
 ```catlang
-; 练习 1：Book 结构体
+; Exercise 1: Book struct
 struct Book [
     title: str
     author: str
@@ -719,13 +719,13 @@ impl Book [
 ]
 
 [
-    new book = Book { title: "CatLang 编程", author: "张三", price: 59.99 }
+    new book = Book { title: "CatLang Programming", author: "John Doe", price: 59.99 }
     new sale_price = book.discounted_price(0.2)
-    print("折扣价：{sale_price}")
+    print("Discounted price: {sale_price}")
     return 0
 ]
 
-; 练习 2：矩阵转置
+; Exercise 2: Matrix transpose
 fn transpose(matrix: [[i32; 3]; 3]) -> [[i32; 3]; 3] [
     new result [[i32; 3]; 3]
     for (new i = 0, i < 3, i += 1) [
@@ -736,15 +736,15 @@ fn transpose(matrix: [[i32; 3]; 3]) -> [[i32; 3]; 3] [
     return result
 ]
 
-; 练习 3：内存重解释
+; Exercise 3: Memory reinterpretation
 [
     new float_val = 1.0
     new int_bits = m+i64 float_val
-    print("1.0 的位模式：{int_bits}")
+    print("Bit pattern of 1.0: {int_bits}")
     return 0
 ]
 
-; 练习 4：泛型 Pair 结构体
+; Exercise 4: Generic Pair struct
 struct Pair<T, U> [
     first: T
     second: U
@@ -762,13 +762,13 @@ impl Pair<T, U> [
     return 0
 ]
 
-; 练习 5：网络数据包
+; Exercise 5: Network packet
 struct NetworkPacket [
-    version: a8        ; 版本号（4 位）+ 类型（4 位）
-    flags: a8          ; 标志位
-    length: a16        ; 包长度
-    checksum: a32      ; 校验和
-    payload: [a8]      ; 动态载荷
+    version: a8        ; Version (4 bits) + Type (4 bits)
+    flags: a8          ; Flags
+    length: a16        ; Packet length
+    checksum: a32      ; Checksum
+    payload: [a8]      ; Dynamic payload
 ]
 
 [
@@ -783,7 +783,7 @@ struct NetworkPacket [
 ```
 </details>
 
-## 下一步
+## Next Steps
 
-- [第 06 章：错误处理](06_error_handling.md) - try/catch、throw
-- [第 07 章：内存管理](07_memory_management.md) - unsafe 深入、内存操作
+- [Chapter 06: Error Handling](06_error_handling.md) - try/catch, throw
+- [Chapter 07: Memory Management](07_memory_management.md) - unsafe deep dive, memory operations

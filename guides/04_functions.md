@@ -1,15 +1,15 @@
-# 第 04 章：函数
+# Chapter 04: Functions
 
-本章介绍 CatLang 中的函数：定义、参数、返回值以及异步函数。
+This chapter introduces functions in CatLang: definition, parameters, return values, and async functions.
 
-## 4.1 函数定义
+## 4.1 Function Definition
 
-### 基本语法
+### Basic Syntax
 
-使用 `fn` 关键字定义函数：
+Define functions using the `fn` keyword:
 
 ```catlang
-; 无参数、无返回值的函数
+; Function without parameters and return value
 fn say_hello() [
     print("Hello!")
 ]
@@ -20,10 +20,10 @@ fn say_hello() [
 ]
 ```
 
-### 带参数的函数
+### Functions with Parameters
 
 ```catlang
-; 带参数的函数
+; Function with parameters
 fn greet(name: str) [
     print("Hello, {name}!")
 ]
@@ -35,7 +35,7 @@ fn greet(name: str) [
 ]
 ```
 
-### 多个参数
+### Multiple Parameters
 
 ```catlang
 fn add(a: i32, b: i32) [
@@ -44,16 +44,16 @@ fn add(a: i32, b: i32) [
 ]
 
 [
-    add(3, 5)  ; 输出：3 + 5 = 8
+    add(3, 5)  ; Output: 3 + 5 = 8
     return 0
 ]
 ```
 
-## 4.2 返回值
+## 4.2 Return Values
 
-使用 `return` 语句返回值：
+Use the `return` statement to return values:
 
-### 基本返回值
+### Basic Return Value
 
 ```catlang
 fn add(a: i32, b: i32) -> i32 [
@@ -62,12 +62,12 @@ fn add(a: i32, b: i32) -> i32 [
 
 [
     new result = add(10, 20)
-    print("结果：{result}")  ; 输出：30
+    print("Result: {result}")  ; Output: 30
     return 0
 ]
 ```
 
-### 早期返回
+### Early Return
 
 ```catlang
 fn absolute(x: i32) -> i32 [
@@ -78,19 +78,19 @@ fn absolute(x: i32) -> i32 [
 ]
 
 [
-    print("{absolute(-5)}")  ; 输出：5
-    print("{absolute(5)}")   ; 输出：5
+    print("{absolute(-5)}")  ; Output: 5
+    print("{absolute(5)}")   ; Output: 5
     return 0
 ]
 ```
 
-### 无返回值（隐式 void）
+### No Return Value (Implicit void)
 
 ```catlang
 fn print_sum(a: i32, b: i32) [
     new sum = a + b
-    print("和：{sum}")
-    ; 隐式返回，无需 return 语句
+    print("Sum: {sum}")
+    ; Implicit return, no return statement needed
 ]
 
 [
@@ -99,38 +99,38 @@ fn print_sum(a: i32, b: i32) [
 ]
 ```
 
-## 4.3 参数传递
+## 4.3 Parameter Passing
 
-### 值传递
+### Pass by Value
 
-CatLang 默认使用值传递：
+CatLang uses pass by value by default:
 
 ```catlang
 fn modify(x: i32) [
     x = x + 10
-    print("函数内：{x}")  ; 输出：15
+    print("Inside function: {x}")  ; Output: 15
 ]
 
 [
     new a = 5
     modify(a)
-    print("函数外：{a}")  ; 输出：5（原值不变）
+    print("Outside function: {a}")  ; Output: 5 (original unchanged)
     return 0
 ]
 ```
 
-### 多参数示例
+### Multiple Parameters Example
 
 ```catlang
 fn calc_circle(radius: f64) -> f64 [
     new pi = 3.14159265359
     new area = pi * radius * radius
     new circumference = 2 * pi * radius
-    
-    print("半径：{radius}")
-    print("面积：{area}")
-    print("周长：{circumference}")
-    
+
+    print("Radius: {radius}")
+    print("Area: {area}")
+    print("Circumference: {circumference}")
+
     return area
 ]
 
@@ -140,12 +140,12 @@ fn calc_circle(radius: f64) -> f64 [
 ]
 ```
 
-## 4.4 函数重载
+## 4.4 Function Overloading
 
-CatLang 不支持传统意义上的函数重载，但可以通过默认参数或不同函数名实现类似功能：
+CatLang doesn't support traditional function overloading, but similar functionality can be achieved through default parameters or different function names:
 
 ```catlang
-; 使用不同函数名
+; Using different function names
 fn greet(name: str) [
     print("Hello, {name}!")
 ]
@@ -161,9 +161,9 @@ fn greet_with_title(title: str, name: str) [
 ]
 ```
 
-## 4.5 递归函数
+## 4.5 Recursive Functions
 
-### 阶乘
+### Factorial
 
 ```catlang
 fn factorial(n: i32) -> i32 [
@@ -174,12 +174,12 @@ fn factorial(n: i32) -> i32 [
 ]
 
 [
-    print("5! = {factorial(5)}")  ; 输出：120
+    print("5! = {factorial(5)}")  ; Output: 120
     return 0
 ]
 ```
 
-### 斐波那契数列
+### Fibonacci Sequence
 
 ```catlang
 fn fibonacci(n: i32) -> i32 [
@@ -200,17 +200,17 @@ fn fibonacci(n: i32) -> i32 [
 ]
 ```
 
-## 4.6 异步函数
+## 4.6 Async Functions
 
-使用 `async fn` 定义异步函数：
+Define async functions using `async fn`:
 
-### 基本异步函数
+### Basic Async Function
 
 ```catlang
 async fn fetch_data(id: i32) -> Result [
-    ; 模拟异步操作
+    ; Simulate async operation
     await sleep(100)
-    print("获取数据：{id}")
+    print("Fetching data: {id}")
     return Result
 ]
 
@@ -220,19 +220,19 @@ async fn fetch_data(id: i32) -> Result [
 ]
 ```
 
-### 多个异步调用
+### Multiple Async Calls
 
 ```catlang
 async fn task(name: str, delay: i32) [
     await sleep(delay)
-    print("{name} 完成")
+    print("{name} completed")
 ]
 
 async fn run_tasks() [
-    ; 顺序执行
-    await task("任务 A", 100)
-    await task("任务 B", 200)
-    await task("任务 C", 150)
+    ; Sequential execution
+    await task("Task A", 100)
+    await task("Task B", 200)
+    await task("Task C", 150)
 ]
 
 [
@@ -241,9 +241,9 @@ async fn run_tasks() [
 ]
 ```
 
-## 4.7 函数作为值
+## 4.7 Functions as Values
 
-### 存储函数结果
+### Store Function Results
 
 ```catlang
 fn square(x: i32) -> i32 [
@@ -252,17 +252,17 @@ fn square(x: i32) -> i32 [
 
 [
     new func_result = square(5)
-    print("结果：{func_result}")  ; 输出：25
+    print("Result: {func_result}")  ; Output: 25
     return 0
 ]
 ```
 
-## 4.8 综合示例
+## 4.8 Comprehensive Examples
 
-### 示例 1：数学工具函数
+### Example 1: Math Utility Functions
 
 ```catlang
-; 计算最大值
+; Calculate maximum
 fn max(a: i32, b: i32) -> i32 [
     if (a > b) [
         return a
@@ -270,7 +270,7 @@ fn max(a: i32, b: i32) -> i32 [
     return b
 ]
 
-; 计算最小值
+; Calculate minimum
 fn min(a: i32, b: i32) -> i32 [
     if (a < b) [
         return a
@@ -278,7 +278,7 @@ fn min(a: i32, b: i32) -> i32 [
     return b
 ]
 
-; 判断素数
+; Check if prime
 fn is_prime(n: i32) -> bool [
     if (n <= 1) [
         return false
@@ -289,7 +289,7 @@ fn is_prime(n: i32) -> bool [
     if (n % 2 == 0 || n % 3 == 0) [
         return false
     ]
-    
+
     new i = 5
     while (i * i <= n) [
         if (n % i == 0 || n % (i + 2) == 0) [
@@ -297,34 +297,34 @@ fn is_prime(n: i32) -> bool [
         ]
         i = i + 6
     ]
-    
+
     return true
 ]
 
 [
     print("max(10, 20) = {max(10, 20)}")
     print("min(10, 20) = {min(10, 20)}")
-    
+
     for (new i = 1, i <= 20, i += 1) [
         if (is_prime(i)) [
-            print("{i} 是素数")
+            print("{i} is prime")
         ]
     ]
-    
+
     return 0
 ]
 ```
 
-### 示例 2：字符串处理函数
+### Example 2: String Processing Functions
 
 ```catlang
-; 计算字符串长度（伪代码，实际实现依赖内置函数）
+; Calculate string length (pseudo-code, actual implementation depends on built-in functions)
 fn str_length(s: str) -> i32 [
-    ; 这里假设有一个内置的 len 函数
+    ; Assuming there's a built-in len function
     return len(s)
 ]
 
-; 连接问候语
+; Concatenate greetings
 fn make_greeting(name: str, time: str) -> str [
     return "{time}, {name}!"
 ]
@@ -336,7 +336,7 @@ fn make_greeting(name: str, time: str) -> str [
 ]
 ```
 
-### 示例 3：数据结构操作
+### Example 3: Data Structure Operations
 
 ```catlang
 struct Point [
@@ -350,40 +350,40 @@ fn create_point(x: i32, y: i32) -> Point [
 
 fn distance_from_origin(p: Point) -> f64 [
     new sq_sum = p.x * p.x + p.y * p.y
-    ; 使用平方根函数（假设有内置 sqrt）
+    ; Use square root function (assuming built-in sqrt)
     return sqrt(sq_sum)
 ]
 
 [
     new p = create_point(3, 4)
     new dist = distance_from_origin(p)
-    print("距离：{dist}")  ; 输出：5
+    print("Distance: {dist}")  ; Output: 5
     return 0
 ]
 ```
 
-### 示例 4：异步任务编排
+### Example 4: Async Task Orchestration
 
 ```catlang
 async fn download_file(url: str) -> Result [
-    print("开始下载：{url}")
+    print("Start downloading: {url}")
     await sleep(500)
-    print("下载完成：{url}")
+    print("Download complete: {url}")
     return Result
 ]
 
 async fn process_data(data: str) -> Result [
-    print("处理数据：{data}")
+    print("Processing data: {data}")
     await sleep(300)
-    print("处理完成")
+    print("Processing complete")
     return Result
 ]
 
 async fn main_workflow() [
-    ; 下载并处理
+    ; Download and process
     await download_file("https://example.com/file1.txt")
     await process_data("file1.txt")
-    
+
     await download_file("https://example.com/file2.txt")
     await process_data("file2.txt")
 ]
@@ -394,49 +394,49 @@ async fn main_workflow() [
 ]
 ```
 
-## 4.9 函数最佳实践
+## 4.9 Function Best Practices
 
-### 1. 函数命名
+### 1. Function Naming
 
-使用有意义的动词短语：
+Use meaningful verb phrases:
 
 ```catlang
-; 好的命名
+; Good naming
 fn calculate_area()
 fn get_user_input()
 fn validate_email()
 
-; 避免模糊命名
-fn do_stuff()      ; 太模糊
-fn process()       ; 不够具体
+; Avoid vague naming
+fn do_stuff()      ; Too vague
+fn process()       ; Not specific enough
 ```
 
-### 2. 单一职责
+### 2. Single Responsibility
 
-每个函数只做一件事：
+Each function should do only one thing:
 
 ```catlang
-; 好的示例
+; Good example
 fn read_file(path: str) -> str [
-    ; 只负责读取文件
+    ; Only responsible for reading file
 ]
 
 fn parse_data(data: str) [
-    ; 只负责解析数据
+    ; Only responsible for parsing data
 ]
 
-; 不好的示例
+; Bad example
 fn read_and_parse_and_save() [
-    ; 做了太多事情
+    ; Does too many things
 ]
 ```
 
-### 3. 参数数量
+### 3. Parameter Count
 
-保持参数数量简洁（最好不超过 3 个）：
+Keep parameter count simple (preferably no more than 3):
 
 ```catlang
-; 如果参数太多，考虑使用结构体
+; If too many parameters, consider using a struct
 struct Config [
     host: str
     port: i32
@@ -445,26 +445,26 @@ struct Config [
 ]
 
 fn connect(config: Config) [
-    ; 使用结构体组织参数
+    ; Use struct to organize parameters
 ]
 ```
 
-## 4.10 练习
+## 4.10 Exercises
 
-1. 编写一个函数 `is_even(n: i32) -> bool` 判断数字是否为偶数
-2. 编写一个函数 `power(base: i32, exp: i32) -> i32` 计算幂
-3. 编写一个异步函数 `delayed_print(msg: str, delay: i32)` 延迟打印消息
+1. Write a function `is_even(n: i32) -> bool` to check if a number is even
+2. Write a function `power(base: i32, exp: i32) -> i32` to calculate power
+3. Write an async function `delayed_print(msg: str, delay: i32)` to print a message with delay
 
 <details>
-<summary>参考答案</summary>
+<summary>Reference Answers</summary>
 
 ```catlang
-; 练习 1：判断偶数
+; Exercise 1: Check even number
 fn is_even(n: i32) -> bool [
     return n % 2 == 0
 ]
 
-; 练习 2：计算幂
+; Exercise 2: Calculate power
 fn power(base: i32, exp: i32) -> i32 [
     new result = 1
     for (new i = 0, i < exp, i += 1) [
@@ -473,22 +473,22 @@ fn power(base: i32, exp: i32) -> i32 [
     return result
 ]
 
-; 练习 3：延迟打印
+; Exercise 3: Delayed print
 async fn delayed_print(msg: str, delay: i32) [
     await sleep(delay)
     print(msg)
 ]
 
 [
-    print("是偶数：{is_even(4)}")
+    print("Is even: {is_even(4)}")
     print("2^10 = {power(2, 10)}")
-    await delayed_print("延迟消息", 1000)
+    await delayed_print("Delayed message", 1000)
     return 0
 ]
 ```
 </details>
 
-## 下一步
+## Next Steps
 
-- [第 05 章：数据结构](05_data_structures.md) - 结构体、数组、指针
-- [第 08 章：并发编程](08_concurrency.md) - async/await 深入、spawn 任务
+- [Chapter 05: Data Structures](05_data_structures.md) - Structs, arrays, pointers
+- [Chapter 08: Concurrency](08_concurrency.md) - async/await deep dive, spawn tasks

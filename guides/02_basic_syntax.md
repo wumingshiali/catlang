@@ -1,188 +1,188 @@
-# 第 02 章：基础语法
+# Chapter 02: Basic Syntax
 
-本章介绍 CatLang 的基础语法元素：变量、类型、运算符和注释。
+This chapter introduces CatLang's basic syntax elements: variables, types, operators, and comments.
 
-## 2.1 注释
+## 2.1 Comments
 
-CatLang 使用分号 `;` 表示注释，从分号到行尾的所有内容都会被忽略：
+CatLang uses semicolon `;` for comments. Everything from the semicolon to the end of the line is ignored:
 
 ```catlang
-; 这是单行注释
+; This is a single-line comment
 [
-    print("Hello")  ; 行尾注释
-    
-    ; 多行注释需要每行都加分号
-    ; 这是第二行
-    ; 这是第三行
-    
+    print("Hello")  ; End-of-line comment
+
+    ; Multi-line comments need semicolon on each line
+    ; This is the second line
+    ; This is the third line
+
     return 0
 ]
 ```
 
-**注意**：分号 `;` 仅用于注释，**不**用于语句结尾。
+**Note**: Semicolon `;` is only used for comments, **not** for statement endings.
 
-## 2.2 变量声明
+## 2.2 Variable Declaration
 
-使用 `new` 关键字声明变量：
+Declare variables using the `new` keyword:
 
 ```catlang
 [
-    ; 声明不初始化
+    ; Declare without initialization
     new x i32
-    
-    ; 声明并初始化（类型推断）
+
+    ; Declare and initialize (type inference)
     new y = 10
     new z = 3.14
     new name = "CatLang"
     new flag = true
-    
-    ; 显式指定类型
+
+    ; Explicitly specify type
     new a i32 = 42
     new b f64 = 2.718
-    
+
     return 0
 ]
 ```
 
-### 变量命名规则
+### Variable Naming Rules
 
 ```catlang
-; 合法的标识符
+; Legal identifiers
 new x = 1
 new my_var = 2
 new myVar = 3
 new myVar2 = 4
 new _private = 5
 
-; 非法的标识符
-; new 2var = 1    ; 不能以数字开头
-; new my-var = 2  ; 不能包含连字符
-; new my var = 3  ; 不能包含空格
+; Illegal identifiers
+; new 2var = 1    ; Cannot start with digit
+; new my-var = 2  ; Cannot contain hyphen
+; new my var = 3  ; Cannot contain space
 ```
 
-## 2.3 字面量类型
+## 2.3 Literal Types
 
-### 整数
+### Integers
 
 ```catlang
 [
-    new decimal = 42        ; 十进制
-    new hex = 0xFF          ; 十六进制 (255)
-    new hex2 = 0x1A2B       ; 十六进制 (6699)
-    
+    new decimal = 42        ; Decimal
+    new hex = 0xFF          ; Hexadecimal (255)
+    new hex2 = 0x1A2B       ; Hexadecimal (6699)
+
     return 0
 ]
 ```
 
-### 浮点数
+### Floating-Point Numbers
 
 ```catlang
 [
     new pi = 3.14159
     new e = 2.71828
-    new large = 1.5e10      ; 科学计数法 (15000000000.0)
+    new large = 1.5e10      ; Scientific notation (15000000000.0)
     new small = 2.5e-3      ; 0.0025
-    
+
     return 0
 ]
 ```
 
-### 字符串
+### Strings
 
 ```catlang
 [
     new simple = "Hello"
-    new with_escape = "Line1\nLine2"  ; 换行
-    new with_tab = "Col1\tCol2"       ; 制表符
-    
-    ; 字符串插值
+    new with_escape = "Line1\nLine2"  ; Newline
+    new with_tab = "Col1\tCol2"       ; Tab
+
+    ; String interpolation
     new name = "Alice"
     new age = 25
-    new intro = "我是{name}，今年{age}岁"
-    
-    print(intro)  ; 输出：我是 Alice，今年 25 岁
-    
+    new intro = "I'm {name}, {age} years old"
+
+    print(intro)  ; Output: I'm Alice, 25 years old
+
     return 0
 ]
 ```
 
-### 布尔值
+### Booleans
 
 ```catlang
 [
     new t = true
     new f = false
-    
-    return 0
-]
-```
-
-## 2.4 内置类型
-
-CatLang 提供以下内置类型：
-
-| 类型 | 描述 | Zig 映射 |
-|------|------|---------|
-| `i8` | 8 位有符号整数 | `i8` |
-| `i16` | 16 位有符号整数 | `i16` |
-| `i32` | 32 位有符号整数 | `i32` |
-| `i64` | 64 位有符号整数 | `i64` |
-| `u8` | 8 位无符号整数 | `u8` |
-| `u16` | 16 位无符号整数 | `u16` |
-| `u32` | 32 位无符号整数 | `u32` |
-| `u64` | 64 位无符号整数 | `u64` |
-| `f32` | 32 位浮点数 | `f32` |
-| `f64` | 64 位浮点数 | `f64` |
-| `bool` | 布尔值 | `bool` |
-| `str` | 字符串 | `[]const u8` |
-| `void` | 空类型 | `void` |
-
-### 特殊类型
-
-| 类型 | 描述 | Zig 映射 |
-|------|------|---------|
-| `ia` | 任意长度整数 | `i128` |
-| `fa` | 任意长度浮点 | `f128` |
-| `sa` | 任意长度字符串 | `[]const u8` |
-| `timer` | 定时器类型 | `Timer` |
-| `Result` | 结果类型 | `anyerror!void` |
-| `Future` | 未来类型 | `anyerror!void` |
-
-### 任意位宽类型
-
-CatLang 提供任意位宽类型，允许你指定位数的类型：
-
-| 类型 | 描述 | Zig 映射 |
-|------|------|---------|
-| `a8` | 任意 8 位类型 | `u8` |
-| `a16` | 任意 16 位类型 | `u16` |
-| `a32` | 任意 32 位类型 | `u32` |
-| `a64` | 任意 64 位类型 | `u64` |
-| `aa` | 任意/无限长度类型 | `u128` |
-
-```catlang
-[
-    ; 使用任意位宽类型
-    new x: a8 = 42          ; 8 位任意类型
-    new y: a16 = 1000       ; 16 位任意类型
-    new z: a32 = 100000     ; 32 位任意类型
-    new big: aa = 999999999 ; 任意长度类型
 
     return 0
 ]
 ```
 
-### 泛型类型
+## 2.4 Built-in Types
 
-CatLang 支持泛型类型参数，使用 `<T>` 或 `<T1, T2, ...>` 语法：
+CatLang provides the following built-in types:
+
+| Type | Description | Zig Mapping |
+|------|------|---------|
+| `i8` | 8-bit signed integer | `i8` |
+| `i16` | 16-bit signed integer | `i16` |
+| `i32` | 32-bit signed integer | `i32` |
+| `i64` | 64-bit signed integer | `i64` |
+| `u8` | 8-bit unsigned integer | `u8` |
+| `u16` | 16-bit unsigned integer | `u16` |
+| `u32` | 32-bit unsigned integer | `u32` |
+| `u64` | 64-bit unsigned integer | `u64` |
+| `f32` | 32-bit float | `f32` |
+| `f64` | 64-bit float | `f64` |
+| `bool` | Boolean | `bool` |
+| `str` | String | `[]const u8` |
+| `void` | Void type | `void` |
+
+### Special Types
+
+| Type | Description | Zig Mapping |
+|------|------|---------|
+| `ia` | Arbitrary-length integer | `i128` |
+| `fa` | Arbitrary-length float | `f128` |
+| `sa` | Arbitrary-length string | `[]const u8` |
+| `timer` | Timer type | `Timer` |
+| `Result` | Result type | `anyerror!void` |
+| `Future` | Future type | `anyerror!void` |
+
+### Arbitrary Bit-Width Types
+
+CatLang provides arbitrary bit-width types, allowing you to specify the number of bits:
+
+| Type | Description | Zig Mapping |
+|------|------|---------|
+| `a8` | Arbitrary 8-bit type | `u8` |
+| `a16` | Arbitrary 16-bit type | `u16` |
+| `a32` | Arbitrary 32-bit type | `u32` |
+| `a64` | Arbitrary 64-bit type | `u64` |
+| `aa` | Arbitrary/infinite length type | `u128` |
 
 ```catlang
 [
-    ; 单类型参数
+    ; Use arbitrary bit-width types
+    new x: a8 = 42          ; 8-bit arbitrary type
+    new y: a16 = 1000       ; 16-bit arbitrary type
+    new z: a32 = 100000     ; 32-bit arbitrary type
+    new big: aa = 999999999 ; Arbitrary length type
+
+    return 0
+]
+```
+
+### Generic Types
+
+CatLang supports generic type parameters using `<T>` or `<T1, T2, ...>` syntax:
+
+```catlang
+[
+    ; Single type parameter
     new opt: Option<i32> = ...
     new list: List<String> = ...
 
-    ; 多类型参数
+    ; Multiple type parameters
     new result: Result<i32, String> = ...
     new map: HashMap<String, i32> = ...
 
@@ -192,32 +192,32 @@ CatLang 支持泛型类型参数，使用 `<T>` 或 `<T1, T2, ...>` 语法：
 
 ```catlang
 [
-    ; 使用特殊类型
+    ; Use special types
     new big_int ia = 999999999999999
     new precise fa = 3.141592653589793238
-    new long_text sa = "这是一段很长的文本..."
+    new long_text sa = "This is a very long text..."
 
     return 0
 ]
 ```
 
-## 2.5 运算符
+## 2.5 Operators
 
-### 算术运算符
+### Arithmetic Operators
 
 ```catlang
 [
-    new a = 10 + 5    ; 加法，a = 15
-    new b = 10 - 5    ; 减法，b = 5
-    new c = 10 * 5    ; 乘法，c = 50
-    new d = 10 / 5    ; 除法，d = 2
-    new e = 10 % 3    ; 取余，e = 1
-    
+    new a = 10 + 5    ; Addition, a = 15
+    new b = 10 - 5    ; Subtraction, b = 5
+    new c = 10 * 5    ; Multiplication, c = 50
+    new d = 10 / 5    ; Division, d = 2
+    new e = 10 % 3    ; Modulo, e = 1
+
     return 0
 ]
 ```
 
-### 复合赋值运算符
+### Compound Assignment Operators
 
 ```catlang
 [
@@ -227,12 +227,12 @@ CatLang 支持泛型类型参数，使用 `<T>` 或 `<T1, T2, ...>` 语法：
     x *= 2    ; x = x * 2 = 24
     x /= 4    ; x = x / 4 = 6
     x %= 4    ; x = x % 4 = 2
-    
+
     return 0
 ]
 ```
 
-### 比较运算符
+### Comparison Operators
 
 ```catlang
 [
@@ -242,148 +242,148 @@ CatLang 支持泛型类型参数，使用 `<T>` 或 `<T1, T2, ...>` 语法：
     new d = 10 <= 5    ; false
     new e = 10 == 10   ; true
     new f = 10 != 5    ; true
-    
+
     return 0
 ]
 ```
 
-### 逻辑运算符
+### Logical Operators
 
 ```catlang
 [
-    new a = true && true   ; true (与)
-    new b = true || false  ; true (或)
-    
+    new a = true && true   ; true (AND)
+    new b = true || false  ; true (OR)
+
     new x = 5
     new complex = (x > 0) && (x < 10)  ; true
-    
+
     return 0
 ]
 ```
 
-### 位运算符（通过复合赋值）
+### Bitwise Operators (via compound assignment)
 
 ```catlang
 [
     new x = 0b1010
-    x &= 0b1100   ; 按位与，x = 0b1000
-    x |= 0b0011   ; 按位或，x = 0b1011
-    x ^= 0b1111   ; 按位异或，x = 0b0100
-    
+    x &= 0b1100   ; Bitwise AND, x = 0b1000
+    x |= 0b0011   ; Bitwise OR, x = 0b1011
+    x ^= 0b1111   ; Bitwise XOR, x = 0b0100
+
     return 0
 ]
 ```
 
-## 2.6 类型系统
+## 2.6 Type System
 
-### 数组类型
+### Array Types
 
 ```catlang
 [
-    ; 动态数组
+    ; Dynamic array
     new arr [i32]
-    
-    ; 固定大小数组
+
+    ; Fixed-size array
     new fixed [i32; 5]
-    
-    ; 多维数组
+
+    ; Multi-dimensional array
     new matrix [[i32; 3]; 3]
-    
+
     return 0
 ]
 ```
 
-### 指针类型
+### Pointer Types
 
 ```catlang
 [
-    ; 指针声明
+    ; Pointer declaration
     new ptr *i32
-    
-    ; 解引用（使用 * 前缀）
+
+    ; Dereference (using * prefix)
     new val = *ptr
-    
+
     return 0
 ]
 ```
 
-### 内存重解释
+### Memory Reinterpretation
 
-使用 `m+` 进行物理位重解释：
+Use `m+` for physical bit reinterpretation:
 
 ```catlang
 [
-    ; 将整数位模式重解释为浮点数
+    ; Reinterpret integer bit pattern as float
     new int_rep = 0x3FF0000000000000
     new pi_val = m+f64 int_rep  ; pi_val ≈ 1.0
-    
+
     return 0
 ]
 ```
 
-## 2.7 完整示例
+## 2.7 Complete Example
 
 ```catlang
-; 综合示例：计算圆的属性
+; Comprehensive example: Calculate circle properties
 [
-    ; 常量定义
+    ; Constant definition
     new pi = 3.14159265359
-    
-    ; 输入
+
+    ; Input
     new radius = 5.0
-    
-    ; 计算
+
+    ; Calculation
     new area = pi * radius * radius
     new circumference = 2 * pi * radius
-    
-    ; 输出（使用字符串插值）
-    print("半径：{radius}")
-    print("面积：{area}")
-    print("周长：{circumference}")
-    
-    ; 条件判断
+
+    ; Output (using string interpolation)
+    print("Radius: {radius}")
+    print("Area: {area}")
+    print("Circumference: {circumference}")
+
+    ; Conditional judgment
     if (area > 50) [
-        print("这是一个大圆")
+        print("This is a large circle")
     ] else [
-        print("这是一个小圆")
+        print("This is a small circle")
     ]
-    
+
     return 0
 ]
 ```
 
-## 2.8 练习
+## 2.8 Exercises
 
-1. 声明三个变量分别存储你的姓名、年龄和身高
-2. 计算并输出一个边长为 5 的正方形的面积和周长
-3. 使用字符串插值输出一句自我介绍
+1. Declare three variables to store your name, age, and height
+2. Calculate and output the area and perimeter of a square with side length 5
+3. Use string interpolation to output a self-introduction
 
 <details>
-<summary>参考答案</summary>
+<summary>Reference Answers</summary>
 
 ```catlang
 [
-    ; 练习 1
-    new name = "张三"
+    ; Exercise 1
+    new name = "John Doe"
     new age = 25
     new height = 1.75
-    
-    ; 练习 2
+
+    ; Exercise 2
     new side = 5
     new area = side * side
     new perimeter = 4 * side
-    print("正方形面积：{area}")
-    print("正方形周长：{perimeter}")
-    
-    ; 练习 3
-    print("我是{name}，今年{age}岁，身高{height}米")
-    
+    print("Square area: {area}")
+    print("Square perimeter: {perimeter}")
+
+    ; Exercise 3
+    print("I'm {name}, {age} years old, {height} meters tall")
+
     return 0
 ]
 ```
 </details>
 
-## 下一步
+## Next Steps
 
-- [第 03 章：控制流](03_control_flow.md) - 条件语句、循环、模式匹配
-- [第 05 章：数据结构](05_data_structures.md) - 结构体、数组深入
+- [Chapter 03: Control Flow](03_control_flow.md) - Conditional statements, loops, pattern matching
+- [Chapter 05: Data Structures](05_data_structures.md) - Structs, arrays deep dive

@@ -4,7 +4,7 @@
 
 **A concise, safe, and high-performance systems programming language**
 
-[Benchmark Results](BENCHMARK_RESULTS.md) | [Syntax Guide(Deprecated)](syntax.txt) | [Examples](test) | [Guide(Only Chinese)](guides/README.md) | [简体中文](README_CN.md)
+[Benchmark Results](BENCHMARK_RESULTS.md) | [Syntax Guide(Deprecated)](syntax.txt) | [Guide](guides/README.md) | [简体中文](README_ZH_CN.md)
 
 </div>
 

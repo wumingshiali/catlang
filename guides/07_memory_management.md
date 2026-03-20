@@ -1,180 +1,180 @@
-# 第 07 章：内存管理
+# Chapter 07: Memory Management
 
-本章介绍 CatLang 的内存管理机制：unsafe 块、内存重解释、内存复制和底层控制。
+This chapter introduces CatLang's memory management mechanism: unsafe blocks, memory reinterpretation, memory copying, and low-level control.
 
-## 7.1 安全模型
+## 7.1 Safety Model
 
-CatLang 默认提供内存安全保障，但允许通过 `unsafe` 块进行底层控制：
+CatLang provides memory safety by default, but allows low-level control through `unsafe` blocks:
 
 ```catlang
 [
-    ; 安全代码 - 编译器检查
+    ; Safe code - compiler checks
     new x = 10
     new arr = [1, 2, 3]
-    new val = arr[0]  ; 边界检查
-    
-    ; 不安全代码 - 程序员负责
+    new val = arr[0]  ; Bounds checked
+
+    ; Unsafe code - programmer responsibility
     unsafe all [
         new raw = m+*i32 0x1000
         print("{*raw}")
     ]
-    
+
     return 0
 ]
 ```
 
-## 7.2 Unsafe 块
+## 7.2 Unsafe Blocks
 
-### 安全目标
+### Safety Targets
 
-CatLang 提供多种安全检查：
+CatLang provides multiple safety checks:
 
-| 检查类型 | 说明 |
+| Check Type | Description |
 |---------|------|
-| `init` | 初始化检查 - 确保变量使用前已初始化 |
-| `bounds` | 边界检查 - 确保数组访问不越界 |
-| `lifetime` | 生命周期检查 - 确保引用有效 |
-| `null` | 空指针检查 - 确保指针非空 |
+| `init` | Initialization check - ensures variables are initialized before use |
+| `bounds` | Bounds check - ensures array access doesn't go out of bounds |
+| `lifetime` | Lifetime check - ensures references are valid |
+| `null` | Null pointer check - ensures pointers are non-null |
 
-### 关闭特定检查
+### Disable Specific Checks
 
 ```catlang
-; 关闭初始化检查
+; Disable initialization check
 unsafe close(init) [
     new uninitialized i32
-    ; 可以使用未初始化的变量
+    ; Can use uninitialized variable
     print("{uninitialized}")
 ]
 
-; 关闭边界检查
+; Disable bounds check
 unsafe close(bounds) [
     new arr = [1, 2, 3]
-    new val = arr[100]  ; 不会触发边界检查
+    new val = arr[100]  ; Won't trigger bounds check
 ]
 
-; 关闭生命周期检查
+; Disable lifetime check
 unsafe close(lifetime) [
-    ; 进行可能违反生命周期的操作
+    ; Perform operations that may violate lifetime
 ]
 
-; 关闭空指针检查
+; Disable null pointer check
 unsafe close(null) [
     new ptr *i32
-    ; 可以解引用可能为空的指针
+    ; Can dereference potentially null pointer
 ]
 ```
 
-### 保持特定检查
+### Keep Specific Checks
 
 ```catlang
-; 只保持生命周期检查，关闭其他
+; Keep only lifetime check, disable others
 unsafe keep(lifetime) [
-    ; 其他检查被禁用
+    ; Other checks are disabled
 ]
 
-; 保持初始化和边界检查
+; Keep initialization and bounds checks
 unsafe keep(init, bounds) [
-    ; 只保持这两种检查
+    ; Only keep these two checks
 ]
 ```
 
-### 完全关闭所有检查
+### Disable All Checks
 
 ```catlang
 unsafe all [
-    ; 所有安全检查都被禁用
-    ; 完全的底层控制
+    ; All safety checks are disabled
+    ; Full low-level control
     new raw_memory = m+*u8 0x0000
     print("{*raw_memory}")
 ]
 ```
 
-## 7.3 内存重解释
+## 7.3 Memory Reinterpretation
 
-使用 `m+` 进行物理位重解释（不改变位模式，只改变解释方式）：
+Use `m+` for physical bit reinterpretation (doesn't change bit pattern, only interpretation):
 
-### 基本语法
+### Basic Syntax
 
 ```catlang
 m+<type> <expression>
 ```
 
-### 整数到浮点数
+### Integer to Float
 
 ```catlang
 [
-    ; IEEE 754 双精度表示 1.0
+    ; IEEE 754 double precision representation of 1.0
     new int_rep = 0x3FF0000000000000
     new float_val = m+f64 int_rep
-    
-    print("重解释：{float_val}")  ; 输出：1.0
-    
-    ; IEEE 754 双精度表示 2.0
+
+    print("Reinterpreted: {float_val}")  ; Output: 1.0
+
+    ; IEEE 754 double precision representation of 2.0
     new int_rep2 = 0x4000000000000000
     new float_val2 = m+f64 int_rep2
-    
-    print("重解释：{float_val2}")  ; 输出：2.0
-    
+
+    print("Reinterpreted: {float_val2}")  ; Output: 2.0
+
     return 0
 ]
 ```
 
-### 浮点数到整数
+### Float to Integer
 
 ```catlang
 [
     new pi = 3.14159265359
     new bits = m+i64 pi
-    
-    print("Pi 的位模式：{bits}")
-    print("十六进制：0x{bits:x}")
-    
+
+    print("Pi bit pattern: {bits}")
+    print("Hexadecimal: 0x{bits:x}")
+
     return 0
 ]
 ```
 
-### 指针重解释
+### Pointer Reinterpretation
 
 ```catlang
 [
     new addr = 0x7fff0000
     new ptr = m+*i32 addr
-    
+
     unsafe all [
         print("{*ptr}")
     ]
-    
+
     return 0
 ]
 ```
 
-## 7.4 内存复制 (cpy)
+## 7.4 Memory Copy (cpy)
 
-使用 `cpy` 进行原始内存复制：
+Use `cpy` for raw memory copying:
 
-### 基本语法
+### Basic Syntax
 
 ```catlang
 cpy <destination> <type> (<source>)
 ```
 
-### 复制基本类型
+### Copy Basic Types
 
 ```catlang
 [
     new source = 42
     new dest i32
-    
-    ; 复制 4 字节（i32 大小）
+
+    ; Copy 4 bytes (i32 size)
     cpy dest i32(source)
-    
-    print("目标值：{dest}")  ; 输出：42
-    
+
+    print("Destination value: {dest}")  ; Output: 42
+
     return 0
 ]
 ```
 
-### 复制结构体
+### Copy Structs
 
 ```catlang
 struct Data [
@@ -187,138 +187,138 @@ struct Data [
 [
     new src = Data { a: 1, b: 2, c: 3, d: 4 }
     new dst Data
-    
-    ; 复制整个结构体
+
+    ; Copy entire struct
     cpy dst Data(src)
-    
+
     print("dst.a = {dst.a}, dst.b = {dst.b}")
     print("dst.c = {dst.c}, dst.d = {dst.d}")
-    
+
     return 0
 ]
 ```
 
-### 部分复制
+### Partial Copy
 
 ```catlang
 [
     new source = 0x1234567890ABCDEF
     new dest i32
-    
-    ; 只复制低 4 字节
+
+    ; Copy only lower 4 bytes
     cpy dest i32(source)
-    
-    print("目标值：{dest}")  ; 输出：低 32 位
-    
+
+    print("Destination value: {dest}")  ; Output: lower 32 bits
+
     return 0
 ]
 ```
 
-## 7.5 指针操作
+## 7.5 Pointer Operations
 
-### 指针声明和解引用
+### Pointer Declaration and Dereference
 
 ```catlang
 [
     new value = 100
     new ptr *i32 = &value
-    
-    ; 解引用
+
+    ; Dereference
     new deref = *ptr
-    print("值：{dereF}")  ; 输出：100
-    
-    ; 通过指针修改
+    print("Value: {deref}")  ; Output: 100
+
+    ; Modify through pointer
     *ptr = 200
-    print("新值：{value}")  ; 输出：200
-    
+    print("New value: {value}")  ; Output: 200
+
     return 0
 ]
 ```
 
-### 指针算术（unsafe）
+### Pointer Arithmetic (unsafe)
 
 ```catlang
 [
     new arr = [10, 20, 30, 40, 50]
     new base_ptr *i32 = &arr[0]
-    
+
     unsafe close(bounds) [
-        ; 指针偏移
+        ; Pointer offset
         new ptr1 = base_ptr
-        new ptr2 = base_ptr + 1  ; 指向下一个元素
+        new ptr2 = base_ptr + 1  ; Points to next element
         new ptr3 = base_ptr + 2
-        
-        print("{*ptr1}")  ; 输出：10
-        print("{*ptr2}")  ; 输出：20
-        print("{*ptr3}")  ; 输出：30
+
+        print("{*ptr1}")  ; Output: 10
+        print("{*ptr2}")  ; Output: 20
+        print("{*ptr3}")  ; Output: 30
     ]
-    
+
     return 0
 ]
 ```
 
-### 空指针
+### Null Pointer
 
 ```catlang
 [
     new null_ptr *i32 = null
-    
+
     unsafe close(null) [
-        ; 解引用空指针（危险！）
+        ; Dereference null pointer (dangerous!)
         ; print("{*null_ptr}")
     ]
-    
-    ; 检查空指针
+
+    ; Check for null pointer
     if (null_ptr == null) [
-        print("空指针")
+        print("Null pointer")
     ]
-    
+
     return 0
 ]
 ```
 
-## 7.6 内存布局
+## 7.6 Memory Layout
 
-### 结构体内存布局
+### Struct Memory Layout
 
 ```catlang
 struct Point [
-    x: i32    ; 4 字节
-    y: i32    ; 4 字节
+    x: i32    ; 4 bytes
+    y: i32    ; 4 bytes
 ]
 
-; Point 结构体占用 8 字节（可能有对齐填充）
+; Point struct occupies 8 bytes (may have alignment padding)
 
 struct PackedData [
-    a: u8     ; 1 字节
-    b: i32    ; 4 字节（可能有 3 字节填充）
-    c: u8     ; 1 字节
+    a: u8     ; 1 byte
+    b: i32    ; 4 bytes (may have 3 bytes padding)
+    c: u8     ; 1 byte
 ]
 
-; PackedData 可能占用 12 字节（由于对齐）
+; PackedData may occupy 12 bytes (due to alignment)
 ```
 
-### 计算偏移量
+### Calculate Offset
 
 ```catlang
 unsafe all [
-    ; 计算结构体字段的偏移量
+    ; Calculate struct field offset
     new base = 0
     new ptr = m+*Point base
-    
-    ; x 的偏移量是 0
-    ; y 的偏移量是 4
-    
-    new y_ptr = ptr + 1  ; 指向 y 字段
+
+    ; x offset is 0
+    ; y offset is 4
+
+    new y_ptr = ptr + 1  ; Points to y field
 ]
 ```
 
-## 7.7 综合示例
+## 7.7 Comprehensive Examples
 
-### 示例 1：类型双关
+### Example 1: Type Punning
 
 ```catlang
-; 使用内存重解释实现类型双关
+; Implement type punning using memory reinterpretation
 
 union FloatInt [
     as_float: f64
@@ -326,20 +326,20 @@ union FloatInt [
 ]
 
 [
-    ; 方法 1：使用 union
+    ; Method 1: Using union
     new fi = FloatInt { as_float: 3.14159 }
-    print("位模式：{fi.as_int}")
-    
-    ; 方法 2：使用 m+ 重解释
+    print("Bit pattern: {fi.as_int}")
+
+    ; Method 2: Using m+ reinterpretation
     new float_val = 2.71828
     new int_bits = m+i64 float_val
-    print("位模式：{int_bits}")
-    
+    print("Bit pattern: {int_bits}")
+
     return 0
 ]
 ```
 
-### 示例 2：原始内存操作
+### Example 2: Raw Memory Operations
 
 ```catlang
 struct MemoryBlock [
@@ -355,7 +355,7 @@ impl MemoryBlock [
             return *ptr
         ]
     ]
-    
+
     fn write_byte(self: MemoryBlock, offset: u64, value: u8) [
         unsafe all [
             new addr = self.address + offset
@@ -363,7 +363,7 @@ impl MemoryBlock [
             *ptr = value
         ]
     ]
-    
+
     fn read_u32(self: MemoryBlock, offset: u64) -> u32 [
         unsafe all [
             new addr = self.address + offset
@@ -375,16 +375,16 @@ impl MemoryBlock [
 
 [
     new block = MemoryBlock { address: 0x1000, size: 256 }
-    
-    ; 读取内存（模拟）
+
+    ; Read memory (simulated)
     new byte0 = block.read_byte(0)
     new word0 = block.read_u32(0)
-    
+
     return 0
 ]
 ```
 
-### 示例 3：自定义内存池
+### Example 3: Custom Memory Pool
 
 ```catlang
 struct MemoryPool [
@@ -396,14 +396,14 @@ impl MemoryPool [
     fn alloc(self: MemoryPool, size: u32) -> *u8 [
         unsafe close(bounds) [
             if (self.offset + size > 1024) [
-                throw "内存池溢出"
+                throw "Memory pool overflow"
             ]
             new ptr = &self.buffer[self.offset]
             self.offset = self.offset + size
             return ptr
         ]
     ]
-    
+
     fn reset(self: MemoryPool) [
         self.offset = 0
     ]
@@ -411,23 +411,23 @@ impl MemoryPool [
 
 [
     new pool = MemoryPool { offset: 0 }
-    
+
     new ptr1 = pool.alloc(64)
     new ptr2 = pool.alloc(128)
-    
-    ; 使用分配的内存
+
+    ; Use allocated memory
     unsafe all [
         *ptr1 = 42
     ]
-    
-    ; 重置池
+
+    ; Reset pool
     pool.reset()
-    
+
     return 0
 ]
 ```
 
-### 示例 4：序列化/反序列化
+### Example 4: Serialization/Deserialization
 
 ```catlang
 struct Serializer [
@@ -443,25 +443,25 @@ impl Serializer [
             new byte1 = (bits >> 8) & 0xFF
             new byte2 = (bits >> 16) & 0xFF
             new byte3 = (bits >> 24) & 0xFF
-            
+
             self.buffer[self.position] = byte0
             self.buffer[self.position + 1] = byte1
             self.buffer[self.position + 2] = byte2
             self.buffer[self.position + 3] = byte3
-            
+
             self.position = self.position + 4
         ]
     ]
-    
+
     fn write_f64(self: Serializer, value: f64) [
         unsafe all [
             new bits = m+u64 value
-            
+
             for (new i = 0, i < 8, i += 1) [
                 new byte = (bits >> (i * 8)) & 0xFF
                 self.buffer[self.position + i] = byte
             ]
-            
+
             self.position = self.position + 8
         ]
     ]
@@ -469,15 +469,15 @@ impl Serializer [
 
 [
     new serializer = Serializer { position: 0 }
-    
+
     serializer.write_i32(42)
     serializer.write_f64(3.14159)
-    
+
     return 0
 ]
 ```
 
-### 示例 5：硬件寄存器访问
+### Example 5: Hardware Register Access
 
 ```catlang
 struct GPIO [
@@ -492,7 +492,7 @@ impl GPIO [
             *ptr = value
         ]
     ]
-    
+
     fn read_reg(self: GPIO, offset: u32) -> u32 [
         unsafe all [
             new addr = self.base_addr + offset
@@ -500,7 +500,7 @@ impl GPIO [
             return *ptr
         ]
     ]
-    
+
     fn set_bit(self: GPIO, offset: u32, bit: u32) [
         unsafe all [
             new addr = self.base_addr + offset
@@ -508,7 +508,7 @@ impl GPIO [
             *ptr = *ptr | (1 << bit)
         ]
     ]
-    
+
     fn clear_bit(self: GPIO, offset: u32, bit: u32) [
         unsafe all [
             new addr = self.base_addr + offset
@@ -520,24 +520,24 @@ impl GPIO [
 
 [
     new gpio = GPIO { base_addr: 0x48000000 }
-    
-    ; 配置引脚
-    gpio.write_reg(0x00, 0x00000001)  ; 设置引脚 0 为输出
-    gpio.set_bit(0x04, 0)             ; 输出高电平
-    gpio.clear_bit(0x04, 0)           ; 输出低电平
-    
+
+    ; Configure pin
+    gpio.write_reg(0x00, 0x00000001)  ; Set pin 0 as output
+    gpio.set_bit(0x04, 0)             ; Output high
+    gpio.clear_bit(0x04, 0)           ; Output low
+
     new status = gpio.read_reg(0x08)
-    
+
     return 0
 ]
 ```
 
-## 7.8 安全最佳实践
+## 7.8 Safety Best Practices
 
-### 1. 最小化 unsafe 范围
+### 1. Minimize unsafe Scope
 
 ```catlang
-; 不好的做法 - 大范围 unsafe
+; Bad practice - large unsafe scope
 unsafe all [
     new x = 10
     new ptr = m+*i32 0x1000
@@ -545,7 +545,7 @@ unsafe all [
     print("{*ptr}")
 ]
 
-; 好的做法 - 最小化 unsafe
+; Good practice - minimize unsafe
 new x = 10
 new y = 20
 unsafe all [
@@ -554,24 +554,24 @@ unsafe all [
 ]
 ```
 
-### 2. 添加注释说明
+### 2. Add Comments to Explain
 
 ```catlang
 unsafe close(bounds) [
-    ; 安全：已知数组长度为 100，i 范围是 0-99
+    ; Safe: known array length is 100, i range is 0-99
     for (new i = 0, i < 100, i += 1) [
         new val = arr[i]
     ]
 ]
 ```
 
-### 3. 封装 unsafe 操作
+### 3. Encapsulate unsafe Operations
 
 ```catlang
-; 将 unsafe 封装在安全接口中
+; Encapsulate unsafe in safe interface
 fn safe_read(ptr: *i32) -> i32 [
     if (ptr == null) [
-        throw "空指针"
+        throw "Null pointer"
     ]
     unsafe close(null) [
         return *ptr
@@ -579,41 +579,41 @@ fn safe_read(ptr: *i32) -> i32 [
 ]
 ```
 
-### 4. 验证指针有效性
+### 4. Validate Pointer Validity
 
 ```catlang
 unsafe all [
     new ptr = m+*i32 addr
-    
-    ; 验证地址范围
+
+    ; Validate address range
     if (addr < 0x1000 || addr > 0xFFFFFFFF) [
-        throw "无效地址"
+        throw "Invalid address"
     ]
-    
+
     print("{*ptr}")
 ]
 ```
 
-## 7.9 练习
+## 7.9 Exercises
 
-1. 使用 `m+` 将浮点数 0.5 重解释为整数，并打印其位模式
-2. 编写一个函数，使用 `cpy` 复制结构体的部分字段
-3. 实现一个简单的栈数据结构，使用 unsafe 块进行底层内存操作
+1. Use `m+` to reinterpret float 0.5 as integer and print its bit pattern
+2. Write a function that uses `cpy` to copy part of a struct's fields
+3. Implement a simple stack data structure using unsafe blocks for low-level memory operations
 
 <details>
-<summary>参考答案</summary>
+<summary>Reference Answers</summary>
 
 ```catlang
-; 练习 1：浮点数重解释
+; Exercise 1: Float reinterpretation
 [
     new val = 0.5
     new bits = m+i64 val
-    print("0.5 的位模式：{bits}")
-    print("十六进制：0x{bits:x}")
+    print("0.5 bit pattern: {bits}")
+    print("Hexadecimal: 0x{bits:x}")
     return 0
 ]
 
-; 练习 2：部分复制
+; Exercise 2: Partial copy
 struct Source [
     a: i32
     b: i32
@@ -623,15 +623,15 @@ struct Source [
 [
     new src = Source { a: 1, b: 2, c: 3 }
     new dest i32
-    
-    ; 只复制第一个字段
+
+    ; Copy only first field
     cpy dest i32(src)
-    
-    print("dest = {dest}")  ; 输出：1
+
+    print("dest = {dest}")  ; Output: 1
     return 0
 ]
 
-; 练习 3：简单栈
+; Exercise 3: Simple stack
 struct Stack [
     data: [i32; 100]
     top: i32
@@ -644,7 +644,7 @@ impl Stack [
             self.top = self.top + 1
         ]
     ]
-    
+
     fn pop(self: Stack) -> i32 [
         unsafe close(bounds) [
             self.top = self.top - 1
@@ -655,7 +655,7 @@ impl Stack [
 ```
 </details>
 
-## 下一步
+## Next Steps
 
-- [第 08 章：并发编程](08_concurrency.md) - async/await、spawn 任务
-- [第 10 章：最佳实践](10_best_practices.md) - 代码风格、性能提示
+- [Chapter 08: Concurrency](08_concurrency.md) - async/await, spawn tasks
+- [Chapter 10: Best Practices](10_best_practices.md) - Code style, performance tips

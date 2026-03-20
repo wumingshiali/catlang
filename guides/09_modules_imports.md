@@ -1,138 +1,138 @@
-# 第 09 章：模块与导入
+# Chapter 09: Modules & Imports
 
-本章介绍 CatLang 的模块系统和第三方库导入机制。
+This chapter introduces CatLang's module system and third-party library import mechanism.
 
-## 9.1 导入原则
+## 9.1 Import Principles
 
-### 零样板设计
+### Zero Boilerplate Design
 
-CatLang 采用零样板设计，标准库功能自动注入全局作用域：
+CatLang uses a zero boilerplate design where standard library features are automatically injected into the global scope:
 
 ```catlang
 [
-    ; 以下内置功能无需导入，直接使用
-    print("Hello")           ; 内置 IO
-    sleep(100)               ; 内置并发
-    len("string")            ; 内置工具函数
-    sqrt(2.0)                ; 内置数学函数
-    
+    ; The following built-in features can be used directly without imports
+    print("Hello")           ; Built-in IO
+    sleep(100)               ; Built-in concurrency
+    len("string")            ; Built-in utility function
+    sqrt(2.0)                ; Built-in math function
+
     return 0
 ]
 ```
 
-### 第三方库按需导入
+### Third-Party Libraries on Demand
 
-只有使用第三方库时才需要显式导入：
+Only third-party libraries need explicit imports:
 
 ```catlang
-; 导入第三方库
+; Import third-party libraries
 import numpy as np
 from my_lib.utils import helper_func
 
 [
-    ; 使用第三方库
+    ; Use third-party libraries
     new arr = np.array([1, 2, 3])
     new result = helper_func(arr)
-    
+
     return 0
 ]
 ```
 
-## 9.2 导入语法
+## 9.2 Import Syntax
 
-### 简单导入
+### Simple Imports
 
 ```catlang
-; 导入整个模块
+; Import entire module
 import module_name
 
-; 导入并设置别名
+; Import with alias
 import module_name as alias
 import very_long_module_name as vlmn
 ```
 
-### 从模块导入
+### From-Module Imports
 
 ```catlang
-; 从模块导入单个名称
+; Import single name from module
 from module_name import function_name
 
-; 从模块导入多个名称
+; Import multiple names from module
 from module_name import func1, func2, func3
 
-; 从模块导入并设置别名
+; Import from module with alias
 from module_name import original_name as alias
 from module_name import func1 as f1, func2 as f2
 ```
 
-### 嵌套模块路径
+### Nested Module Paths
 
 ```catlang
-; 点号分隔的模块路径
+; Dot-separated module paths
 import package.subpackage.module
 
-; 从嵌套模块导入
+; Import from nested module
 from package.subpackage.module import function
 ```
 
-## 9.3 导入示例
+## 9.3 Import Examples
 
-### 数学库
+### Math Library
 
 ```catlang
-; 假设有一个第三方数学库
+; Assuming a third-party math library
 import math as m
 
 [
     new result = m.sin(3.14159 / 2)
     print("sin(π/2) = {result}")
-    
+
     new sqrt_val = m.sqrt(16)
     print("√16 = {sqrt_val}")
-    
+
     return 0
 ]
 ```
 
-### 工具库
+### Utility Library
 
 ```catlang
-; 从工具库导入特定函数
+; Import specific functions from utility library
 from string_utils import capitalize, reverse, trim
 
 [
     new text = "  hello world  "
     new trimmed = trim(text)
     new capitalized = capitalize(trimmed)
-    
-    print("原始：'{text}'")
-    print("处理后：'{capitalized}'")
-    
+
+    print("Original: '{text}'")
+    print("Processed: '{capitalized}'")
+
     return 0
 ]
 ```
 
-### 数据科学库
+### Data Science Library
 
 ```catlang
 import numpy as np
 import pandas as pd
 
 [
-    ; 使用 numpy 创建数组
+    ; Create array using numpy
     new arr = np.array([1, 2, 3, 4, 5])
-    
-    ; 使用 pandas 创建 DataFrame
+
+    ; Create DataFrame using pandas
     new df = pd.DataFrame({
         "name": ["Alice", "Bob"],
         "age": [25, 30]
     })
-    
+
     return 0
 ]
 ```
 
-### 网络库
+### Network Library
 
 ```catlang
 from http.client import get, post
@@ -142,18 +142,18 @@ from json import parse as json_parse
     try [
         new response = get("https://api.example.com/data")
         new data = json_parse(response.body)
-        print("获取数据：{data}")
+        print("Got data: {data}")
     ] catch (e Any) [
-        print("请求失败：{e}")
+        print("Request failed: {e}")
     ]
-    
+
     return 0
 ]
 ```
 
-## 9.4 模块组织
+## 9.4 Module Organization
 
-### 包结构示例
+### Package Structure Example
 
 ```
 my_package/
@@ -171,36 +171,36 @@ my_package/
     └── client.catlang
 ```
 
-### 导入方式
+### Import Methods
 
 ```catlang
-; 导入子模块
+; Import submodule
 import my_package.core.engine
 
-; 从子模块导入
+; Import from submodule
 from my_package.core import engine
 from my_package.utils.helpers import validate_input
 
-; 使用别名简化
+; Use aliases to simplify
 import my_package.core.engine as engine
 from my_package.utils import helpers as h
 ```
 
-## 9.5 综合示例
+## 9.5 Comprehensive Examples
 
-### 示例 1：Web 应用
+### Example 1: Web Application
 
 ```catlang
-; 导入 Web 框架
+; Import web framework
 import web_framework as web
 from web_framework import Route, Request, Response
 from database import connect as db_connect
 from auth import verify_token, require_auth
 
-; 创建应用
+; Create application
 new app = web.App("MyApp")
 
-; 定义路由
+; Define routes
 @app.route("/api/users")
 async fn get_users(req: Request) -> Response [
     try [
@@ -208,17 +208,17 @@ async fn get_users(req: Request) -> Response [
         new users = await db.query("SELECT * FROM users")
         return Response { status: 200, body: users }
     ] catch (e Any) [
-        return Response { status: 500, body: "错误：{e}" }
+        return Response { status: 500, body: "Error: {e}" }
     ]
 ]
 
-; 受保护的路由
+; Protected route
 @app.route("/api/admin")
 @require_auth
 async fn admin_panel(req: Request) -> Response [
     new token = req.headers["Authorization"]
     new user = await verify_token(token)
-    return Response { status: 200, body: "欢迎，{user.name}" }
+    return Response { status: 200, body: "Welcome, {user.name}" }
 ]
 
 [
@@ -227,84 +227,84 @@ async fn admin_panel(req: Request) -> Response [
 ]
 ```
 
-### 示例 2：数据处理管道
+### Example 2: Data Processing Pipeline
 
 ```catlang
-; 导入数据处理库
+; Import data processing libraries
 import pandas as pd
 import numpy as np
 from ml_library import train, predict, evaluate
 from visualization import plot, histogram, scatter
 
-; 加载数据
+; Load data
 new data = pd.read_csv("data.csv")
 
-; 数据清洗
+; Data cleaning
 new cleaned = data.drop_na()
 new normalized = cleaned.normalize()
 
-; 特征工程
+; Feature engineering
 new features = normalized.select_columns(["age", "income", "score"])
 new labels = normalized.select_column("target")
 
-; 训练模型
+; Train model
 new model = train(features, labels, model_type: "random_forest")
 
-; 评估
+; Evaluate
 new predictions = predict(model, features)
 new metrics = evaluate(labels, predictions)
 
-print("准确率：{metrics.accuracy}")
-print("F1 分数：{metrics.f1}")
+print("Accuracy: {metrics.accuracy}")
+print("F1 Score: {metrics.f1}")
 
-; 可视化
-scatter(features, labels, title: "数据分布")
-histogram(predictions, title: "预测分布")
+; Visualize
+scatter(features, labels, title: "Data Distribution")
+histogram(predictions, title: "Prediction Distribution")
 plot.show()
 ```
 
-### 示例 3：CLI 工具
+### Example 3: CLI Tool
 
 ```catlang
-; 导入 CLI 框架
+; Import CLI framework
 import cli_framework as cli
 from cli_framework import Command, Option, Argument
 
-; 定义命令
-new cmd = Command("mytool", "我的命令行工具")
+; Define command
+new cmd = Command("mytool", "My command line tool")
 
 cmd.add_subcommand(
-    Command("greet", "打招呼")
-        .add_argument(Argument("name", "姓名"))
-        .add_option(Option("--formal", "正式模式"))
+    Command("greet", "Greet")
+        .add_argument(Argument("name", "Name"))
+        .add_option(Option("--formal", "Formal mode"))
 )
 
 cmd.add_subcommand(
-    Command("calculate", "计算")
-        .add_argument(Argument("a", "第一个数"))
-        .add_argument(Argument("b", "第二个数"))
-        .add_option(Option("--op", "运算符", default: "+"))
+    Command("calculate", "Calculate")
+        .add_argument(Argument("a", "First number"))
+        .add_argument(Argument("b", "Second number"))
+        .add_option(Option("--op", "Operator", default: "+"))
 )
 
-; 处理命令
+; Handle command
 async fn handle_command(ctx: cli.Context) [
     switch (ctx.command) [
         case "greet":
             if (ctx.has_option("formal")) [
-                print("您好，{ctx.args.name}!")
+                print("Hello, {ctx.args.name}!")
             ] else [
-                print("嗨，{ctx.args.name}!")
+                print("Hi, {ctx.args.name}!")
             ]
         case "calculate":
             new a = parse_int(ctx.args.a)
             new b = parse_int(ctx.args.b)
             new op = ctx.get_option("op")
-            
+
             switch (op) [
-                case "+": print("结果：{a + b}")
-                case "-": print("结果：{a - b}")
-                case "*": print("结果：{a * b}")
-                case "/": print("结果：{a / b}")
+                case "+": print("Result: {a + b}")
+                case "-": print("Result: {a - b}")
+                case "*": print("Result: {a * b}")
+                case "/": print("Result: {a / b}")
             ]
     ]
 ]
@@ -315,38 +315,38 @@ async fn handle_command(ctx: cli.Context) [
 ]
 ```
 
-### 示例 4：游戏开发
+### Example 4: Game Development
 
 ```catlang
-; 导入游戏引擎
+; Import game engine
 import game_engine as ge
 from game_engine import Scene, Sprite, Camera, Input
 from physics import Physics2D, Collider
 from audio import play_sound, set_volume
 
-; 创建游戏场景
+; Create game scene
 new scene = ge.Scene("MainScene")
 
-; 创建玩家精灵
+; Create player sprite
 new player = Sprite {
     texture: "player.png",
     position: (100, 100),
     size: (32, 32)
 }
 
-; 添加物理组件
+; Add physics component
 new collider = Collider { shape: "circle", radius: 16 }
 player.add_component(collider)
 
 scene.add_entity(player)
 
-; 游戏主循环
+; Game main loop
 async fn game_loop() [
     new camera = Camera { position: (0, 0), zoom: 1.0 }
     new physics = Physics2D { gravity: (0, -9.8) }
-    
+
     while (true) [
-        ; 处理输入
+        ; Handle input
         if (Input.is_pressed("LEFT")) [
             player.position.x = player.position.x - 5
         ]
@@ -357,14 +357,14 @@ async fn game_loop() [
             player.velocity.y = 10
             play_sound("jump.wav")
         ]
-        
-        ; 更新物理
+
+        ; Update physics
         physics.update(player, delta_time: 0.016)
-        
-        ; 渲染
+
+        ; Render
         scene.render(camera)
-        
-        ; 限制帧率
+
+        ; Limit frame rate
         await sleep(16)
     ]
 ]
@@ -376,12 +376,12 @@ async fn game_loop() [
 ]
 ```
 
-## 9.6 第三方库管理
+## 9.6 Third-Party Library Management
 
-### 依赖声明
+### Dependency Declaration
 
 ```catlang
-; 假设有一个包管理配置文件 package.catlang
+; Assuming a package management configuration file package.catlang
 [package]
 name = "my_app"
 version = "1.0.0"
@@ -395,72 +395,72 @@ web_framework = "0.5.0"
 test_framework = "1.0.0"
 ```
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
-# 安装所有依赖
+# Install all dependencies
 catpkg install
 
-# 安装特定包
+# Install specific package
 catpkg install numpy
 
-# 更新依赖
+# Update dependencies
 catpkg update
 ```
 
-## 9.7 最佳实践
+## 9.7 Best Practices
 
-### 1. 使用有意义的别名
+### 1. Use Meaningful Aliases
 
 ```catlang
-; 好的做法
+; Good practice
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-; 不好的做法
-import numpy as n  ; 太短，不清晰
-import pandas as pandas  ; 没必要
+; Bad practice
+import numpy as n  ; Too short, unclear
+import pandas as pandas  ; Unnecessary
 ```
 
-### 2. 避免过度导入
+### 2. Avoid Over-Importing
 
 ```catlang
-; 好的做法 - 只导入需要的
+; Good practice - import only what's needed
 from utils import validate_email, validate_phone
 
-; 不好的做法 - 导入整个模块当只需要几个函数
+; Bad practice - import entire module when only a few functions needed
 import utils
-; 然后只用 utils.validate_email()
+; Then only use utils.validate_email()
 ```
 
-### 3. 组织导入顺序
+### 3. Organize Import Order
 
 ```catlang
-; 1. 标准库（虽然 CatLang 标准库无需导入）
-; 2. 第三方库
+; 1. Standard library (though CatLang standard library doesn't need imports)
+; 2. Third-party libraries
 import numpy as np
 import pandas as pd
 
-; 3. 本地模块
+; 3. Local modules
 from my_package.core import engine
 from my_package.utils import helpers
 
-; 4. 相对导入（如果支持）
+; 4. Relative imports (if supported)
 from .sibling_module import function
 ```
 
-### 4. 条件导入
+### 4. Conditional Imports
 
 ```catlang
-; 根据平台导入
+; Import based on platform
 if (platform == "windows") [
     import windows_specific as ws
 ] else [
     import unix_specific as us
 ]
 
-; 可选导入
+; Optional imports
 try [
     import optional_feature as of
     new has_feature = true
@@ -469,34 +469,34 @@ try [
 ]
 ```
 
-## 9.8 练习
+## 9.8 Exercises
 
-1. 假设有一个 `statistics` 库，导入并计算一组数据的平均值、中位数和标准差
-2. 从一个假设的 `http` 库导入 `get` 函数，获取 API 数据并解析 JSON 响应
-3. 组织一个多文件项目，包含主程序、工具函数和数据处理模块
+1. Assuming there's a `statistics` library, import it and calculate the mean, median, and standard deviation of a dataset
+2. Import the `get` function from a hypothetical `http` library, fetch API data and parse JSON response
+3. Organize a multi-file project containing main program, utility functions, and data processing modules
 
 <details>
-<summary>参考答案</summary>
+<summary>Reference Answers</summary>
 
 ```catlang
-; 练习 1：统计计算
+; Exercise 1: Statistical calculations
 import statistics as stats
 
 [
     new data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    
+
     new mean = stats.mean(data)
     new median = stats.median(data)
     new std_dev = stats.std_dev(data)
-    
-    print("平均值：{mean}")
-    print("中位数：{median}")
-    print("标准差：{std_dev}")
-    
+
+    print("Mean: {mean}")
+    print("Median: {median}")
+    print("Standard deviation: {std_dev}")
+
     return 0
 ]
 
-; 练习 2：HTTP 请求
+; Exercise 2: HTTP request
 from http.client import get
 from json import parse as json_parse
 
@@ -504,53 +504,53 @@ from json import parse as json_parse
     try [
         new response = get("https://api.example.com/users")
         new users = json_parse(response.body)
-        
+
         for (new user in users) [
-            print("用户：{user.name} - {user.email}")
+            print("User: {user.name} - {user.email}")
         ]
     ] catch (e Any) [
-        print("请求失败：{e}")
+        print("Request failed: {e}")
     ]
-    
+
     return 0
 ]
 
-; 练习 3：项目结构
+; Exercise 3: Project structure
 ; main.catlang
 import utils
 from data_processor import process, validate
 
 [
     new raw_data = utils.load_file("input.txt")
-    
+
     if (validate(raw_data)) [
         new result = process(raw_data)
         utils.save_file("output.txt", result)
     ]
-    
+
     return 0
 ]
 
 ; utils.catlang
 fn load_file(path: str) -> str [
-    ; 实现加载文件
+    ; Implement file loading
 ]
 
 fn save_file(path: str, content: str) [
-    ; 实现保存文件
+    ; Implement file saving
 ]
 
 ; data_processor.catlang
 fn validate(data: str) -> bool [
-    ; 实现验证逻辑
+    ; Implement validation logic
 ]
 
 fn process(data: str) -> str [
-    ; 实现处理逻辑
+    ; Implement processing logic
 ]
 ```
 </details>
 
-## 下一步
+## Next Steps
 
-- [第 10 章：最佳实践](10_best_practices.md) - 代码风格、性能提示、常见陷阱
+- [Chapter 10: Best Practices](10_best_practices.md) - Code style, performance tips, common pitfalls

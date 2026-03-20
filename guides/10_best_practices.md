@@ -1,18 +1,18 @@
-# 第 10 章：最佳实践
+# Chapter 10: Best Practices
 
-本章介绍 CatLang 编程的最佳实践：代码风格、性能优化和常见陷阱。
+This chapter introduces CatLang programming best practices: code style, performance optimization, and common pitfalls.
 
-## 10.1 代码风格
+## 10.1 Code Style
 
-### 命名约定
+### Naming Conventions
 
 ```catlang
-; 变量和函数：使用小写 + 下划线（snake_case）
+; Variables and functions: use lowercase with underscores (snake_case)
 new user_name = "Alice"
 fn calculate_total()
 fn get_user_id()
 
-; 结构体：使用大驼峰（PascalCase）
+; Structs: use PascalCase
 struct UserProfile [
     name: str
     age: i32
@@ -22,76 +22,76 @@ struct HttpClient [
     timeout: i32
 ]
 
-; 常量：使用全大写 + 下划线
+; Constants: use all uppercase with underscores
 new MAX_SIZE = 100
 new PI = 3.14159265359
 
-; 类型别名：使用大驼峰
+; Type aliases: use PascalCase
 new UserId = i32
 new Callback = fn() -> void
 ```
 
-### 代码格式化
+### Code Formatting
 
 ```catlang
-; 好的格式
+; Good formatting
 fn process_data(input: str, threshold: i32, max_iterations: i32) -> Result [
     new result = validate(input)
-    
+
     if (result.is_valid) [
         return transform(result, threshold)
     ] else [
-        return error("无效输入")
+        return error("Invalid input")
     ]
 ]
 
-; 不好的格式 - 拥挤
-fn process_data(input: str,threshold:i32,max_iterations:i32)->Result[new result=validate(input);if(result.is_valid)[return transform(result,threshold)]else[return error("无效输入")]]
+; Bad formatting - cramped
+fn process_data(input: str,threshold:i32,max_iterations:i32)->Result[new result=validate(input);if(result.is_valid)[return transform(result,threshold)]else[return error("Invalid input")]]
 ```
 
-### 适当的空行
+### Appropriate Blank Lines
 
 ```catlang
-; 好的做法 - 使用空行分隔逻辑块
+; Good practice - use blank lines to separate logical blocks
 fn process_users(users: [User]) [
     new valid_users = filter_valid(users)
     new sorted = sort_by_name(valid_users)
-    
+
     for (new user in sorted) [
-        print("用户：{user.name}")
+        print("User: {user.name}")
     ]
-    
-    print("处理完成，共{len(sorted)}个用户")
+
+    print("Processing complete, total {len(sorted)} users")
 ]
 
-; 不好的做法 - 没有分隔
+; Bad practice - no separation
 fn process_users(users: [User]) [
     new valid_users = filter_valid(users)
     new sorted = sort_by_name(valid_users)
     for (new user in sorted) [
-        print("用户：{user.name}")
+        print("User: {user.name}")
     ]
-    print("处理完成，共{len(sorted)}个用户")
+    print("Processing complete, total {len(sorted)} users")
 ]
 ```
 
-### 注释规范
+### Comment Guidelines
 
 ```catlang
-; 好的注释 - 解释为什么
-; 使用快速排序，因为数据量大时性能更好
+; Good comments - explain why
+; Use quicksort because it performs better with large datasets
 fn sort_data(data: [i32]) [
     quick_sort(data)
 ]
 
-; 不好的注释 - 重复代码
-; 调用快速排序
+; Bad comments - repeat code
+; Call quicksort
 fn sort_data(data: [i32]) [
-    quick_sort(data)  ; 排序数据
+    quick_sort(data)  ; Sort data
 ]
 
-; 好的注释 - 说明边界情况
-; 注意：当除数为零时返回 0 而不是抛出错误
+; Good comments - explain edge cases
+; Note: returns 0 instead of throwing error when divisor is zero
 fn safe_divide(a: i32, b: i32) -> i32 [
     if (b == 0) [
         return 0
@@ -100,87 +100,87 @@ fn safe_divide(a: i32, b: i32) -> i32 [
 ]
 ```
 
-## 10.2 性能优化
+## 10.2 Performance Optimization
 
-### 避免不必要的复制
+### Avoid Unnecessary Copies
 
 ```catlang
-; 好的做法 - 传递引用（如果支持）
+; Good practice - pass by reference (if supported)
 fn process_large_data(data: &LargeData) [
-    ; 使用数据但不复制
+    ; Use data without copying
 ]
 
-; 不好的做法 - 值传递导致复制
+; Bad practice - value passing causes copying
 fn process_large_data(data: LargeData) [
-    ; 整个结构体被复制
+    ; Entire struct is copied
 ]
 ```
 
-### 预分配容量
+### Pre-allocate Capacity
 
 ```catlang
-; 好的做法 - 预分配容量
-new arr [i32; 1000]  ; 预分配 1000 个元素
+; Good practice - pre-allocate capacity
+new arr [i32; 1000]  ; Pre-allocate 1000 elements
 
-; 不好的做法 - 动态增长
-new arr [i32]  ; 可能需要多次重新分配
+; Bad practice - dynamic growth
+new arr [i32]  ; May require multiple reallocations
 for (new i = 0, i < 1000, i += 1) [
     arr.push(i)
 ]
 ```
 
-### 使用合适的数据类型
+### Use Appropriate Data Types
 
 ```catlang
-; 根据需求选择类型
-new small_counter: u8 = 0      ; 0-255 足够
-new large_sum: i64 = 0         ; 可能需要大数
-new precise_value: fa = 3.14   ; 需要高精度
+; Choose types based on requirements
+new small_counter: u8 = 0      ; 0-255 is enough
+new large_sum: i64 = 0         ; May need large numbers
+new precise_value: fa = 3.14   ; Need high precision
 
-; 不好的做法 - 过度使用大类型
-new counter: i64 = 0           ; 浪费内存
+; Bad practice - overusing large types
+new counter: i64 = 0           ; Wastes memory
 ```
 
-### 循环优化
+### Loop Optimization
 
 ```catlang
-; 好的做法 - 减少循环内计算
+; Good practice - reduce calculations inside loop
 fn sum_array(arr: [i32]) -> i32 [
-    new len = len(arr)  ; 循环外计算长度
+    new len = len(arr)  ; Calculate length outside loop
     new sum = 0
-    
+
     for (new i = 0, i < len, i += 1) [
         sum = sum + arr[i]
     ]
-    
+
     return sum
 ]
 
-; 不好的做法 - 循环内重复计算
+; Bad practice - repeated calculations inside loop
 fn sum_array(arr: [i32]) -> i32 [
     new sum = 0
-    for (new i = 0, i < len(arr), i += 1) [  ; 每次都计算长度
+    for (new i = 0, i < len(arr), i += 1) [  ; Calculate length every time
         sum = sum + arr[i]
     ]
     return sum
 ]
 ```
 
-### 异步并发优化
+### Async Concurrency Optimization
 
 ```catlang
-; 好的做法 - 并发执行独立任务
+; Good practice - execute independent tasks concurrently
 async fn fetch_all_data() [
     new h1 = spawn fetch_users()
     new h2 = spawn fetch_posts()
     new h3 = spawn fetch_comments()
-    
+
     new users = await h1
     new posts = await h2
     new comments = await h3
 ]
 
-; 不好的做法 - 顺序执行
+; Bad practice - sequential execution
 async fn fetch_all_data() [
     new users = await fetch_users()
     new posts = await fetch_posts()
@@ -188,148 +188,148 @@ async fn fetch_all_data() [
 ]
 ```
 
-## 10.3 常见陷阱
+## 10.3 Common Pitfalls
 
-### 1. 未初始化变量
+### 1. Uninitialized Variables
 
 ```catlang
-; 错误：使用未初始化的变量
+; Error: using uninitialized variable
 [
     new x i32
-    print("{x}")  ; 错误：x 未初始化
+    print("{x}")  ; Error: x is uninitialized
     return 0
 ]
 
-; 正确：初始化后使用
+; Correct: use after initialization
 [
     new x = 0
     print("{x}")
     return 0
 ]
 
-; 或者在 unsafe 块中明确使用
+; Or explicitly use in unsafe block
 [
     unsafe close(init) [
         new x i32
-        print("{x}")  ; 程序员负责确保安全性
+        print("{x}")  ; Programmer responsible for ensuring safety
     ]
     return 0
 ]
 ```
 
-### 2. 数组越界
+### 2. Array Out of Bounds
 
 ```catlang
-; 错误：可能越界
+; Error: may go out of bounds
 [
     new arr = [1, 2, 3]
     unsafe close(bounds) [
-        new val = arr[10]  ; 危险！
+        new val = arr[10]  ; Dangerous!
     ]
     return 0
 ]
 
-; 正确：检查边界
+; Correct: check bounds
 [
     new arr = [1, 2, 3]
     new index = 10
-    
+
     if (index >= 0 && index < len(arr)) [
         new val = arr[index]
     ] else [
-        print("索引越界")
+        print("Index out of bounds")
     ]
     return 0
 ]
 ```
 
-### 3. 空指针解引用
+### 3. Null Pointer Dereference
 
 ```catlang
-; 错误：可能解引用空指针
+; Error: may dereference null pointer
 [
     new ptr *i32 = null
     unsafe close(null) [
-        print("{*ptr}")  ; 危险！
+        print("{*ptr}")  ; Dangerous!
     ]
     return 0
 ]
 
-; 正确：检查空指针
+; Correct: check for null pointer
 [
     new ptr *i32 = get_pointer()
-    
+
     if (ptr != null) [
         unsafe close(null) [
             print("{*ptr}")
         ]
     ] else [
-        print("空指针")
+        print("Null pointer")
     ]
     return 0
 ]
 ```
 
-### 4. 错误处理遗漏
+### 4. Missing Error Handling
 
 ```catlang
-; 错误：忽略可能的错误
+; Error: ignoring possible errors
 [
-    new result = risky_operation()  ; 没有错误处理
-    print("结果：{result}")
+    new result = risky_operation()  ; No error handling
+    print("Result: {result}")
     return 0
 ]
 
-; 正确：处理错误
+; Correct: handle errors
 [
     try [
         new result = risky_operation()
-        print("结果：{result}")
+        print("Result: {result}")
     ] catch (e Any) [
-        print("操作失败：{e}")
+        print("Operation failed: {e}")
     ]
     return 0
 ]
 ```
 
-### 5. 异步代码中的阻塞
+### 5. Blocking in Async Code
 
 ```catlang
-; 错误：在异步函数中阻塞
+; Error: blocking in async function
 async fn bad_example() [
-    sync_wait(something)  ; 阻塞整个事件循环
+    sync_wait(something)  ; Blocks entire event loop
 ]
 
-; 正确：使用异步原语
+; Correct: use async primitives
 async fn good_example() [
     await something_async()
 ]
 ```
 
-### 6. 内存重解释错误
+### 6. Memory Reinterpretation Errors
 
 ```catlang
-; 错误：大小不匹配的重解释
+; Error: size mismatch in reinterpretation
 [
     new small = 42 i32
-    new large = m+i64 small  ; 可能不是预期的结果
+    new large = m+i64 small  ; May not be expected result
     return 0
 ]
 
-; 正确：确保大小匹配
+; Correct: ensure size matches
 [
     new value = 42 i64
-    new bits = m+i64 value  ; 大小匹配
+    new bits = m+i64 value  ; Size matches
     return 0
 ]
 ```
 
-## 10.4 错误处理最佳实践
+## 10.4 Error Handling Best Practices
 
-### 使用具体错误类型
+### Use Specific Error Types
 
 ```catlang
-; 好的做法
+; Good practice
 struct DatabaseError [
     query: str
     code: i32
@@ -339,78 +339,78 @@ struct DatabaseError [
 try [
     execute_query(sql)
 ] catch (e DatabaseError) [
-    print("数据库错误：[{e.code}] {e.message}")
-    print("查询：{e.query}")
+    print("Database error: [{e.code}] {e.message}")
+    print("Query: {e.query}")
 ]
 
-; 不好的做法
+; Bad practice
 try [
     execute_query(sql)
 ] catch (e Any) [
-    ; 丢失具体信息
-    print("出错了")
+    ; Lost specific information
+    print("Error occurred")
 ]
 ```
 
-### 提供有意义的错误信息
+### Provide Meaningful Error Messages
 
 ```catlang
-; 好的做法
+; Good practice
 fn parse_int(s: str) -> i32 [
     if (!is_numeric(s)) [
         throw ParseError {
             input: s,
             position: 0,
-            expected: "数字字符串"
+            expected: "Numeric string"
         }
     ]
 ]
 
-; 不好的做法
+; Bad practice
 fn parse_int(s: str) -> i32 [
     if (!is_numeric(s)) [
-        throw "解析失败"  ; 信息不足
+        throw "Parse failed"  ; Insufficient information
     ]
 ]
 ```
 
-### 在合适的层级处理错误
+### Handle Errors at Appropriate Levels
 
 ```catlang
-; 底层：抛出具体错误
+; Low level: throw specific errors
 fn read_file(path: str) -> str [
     if (!file_exists(path)) [
-        throw FileError { path: path, reason: "文件不存在" }
+        throw FileError { path: path, reason: "File does not exist" }
     ]
     return read_file_content(path)
 ]
 
-; 中层：转换错误
+; Middle level: translate errors
 fn load_config() -> Config [
     try [
         new content = read_file("config.json")
         return parse_config(content)
     ] catch (e FileError) [
-        throw ConfigError { reason: "无法读取配置文件" }
+        throw ConfigError { reason: "Cannot read config file" }
     ]
 ]
 
-; 高层：向用户展示友好信息
+; High level: show user-friendly messages
 [
     try [
         new config = load_config()
     ] catch (e Any) [
-        print("启动失败，请检查配置文件")
+        print("Startup failed, please check config file")
     ]
 ]
 ```
 
-## 10.5 测试建议
+## 10.5 Testing Suggestions
 
-### 单元测试
+### Unit Tests
 
 ```catlang
-; 假设有一个测试框架
+; Assuming a test framework
 import test_framework as tf
 
 fn add(a: i32, b: i32) -> i32 [
@@ -433,7 +433,7 @@ tf.test("add mixed numbers") [
 ]
 ```
 
-### 边界测试
+### Boundary Tests
 
 ```catlang
 tf.test("empty array") [
@@ -455,27 +455,27 @@ tf.test("large array") [
 ]
 ```
 
-## 10.6 安全检查清单
+## 10.6 Safety Checklist
 
-在提交代码前检查：
+Check before submitting code:
 
-- [ ] 所有变量都已初始化
-- [ ] 数组访问有边界检查
-- [ ] 指针使用前检查空值
-- [ ] 错误已适当处理
-- [ ] 没有资源泄漏
-- [ ] 并发代码没有竞态条件
-- [ ] unsafe 块有充分注释
-- [ ] 敏感数据已妥善处理
+- [ ] All variables are initialized
+- [ ] Array access has bounds checking
+- [ ] Pointers are checked for null before use
+- [ ] Errors are handled appropriately
+- [ ] No resource leaks
+- [ ] Concurrent code has no race conditions
+- [ ] unsafe blocks have adequate comments
+- [ ] Sensitive data is handled properly
 
-## 10.7 综合示例
+## 10.7 Comprehensive Examples
 
-### 完整的项目结构
+### Complete Project Structure
 
 ```catlang
 ; ==========================================
-; 文件：main.catlang
-; 描述：应用程序入口
+; File: main.catlang
+; Description: Application entry point
 ; ==========================================
 
 import config_loader as cfg
@@ -483,20 +483,20 @@ import database as db
 import api_server as api
 import logging as log
 
-; 应用配置
+; Application configuration
 struct AppConfig [
     port: i32
     db_url: str
     log_level: str
 ]
 
-; 初始化日志
+; Initialize logging
 fn init_logging(level: str) [
     log.configure(level: level)
-    log.info("日志系统已初始化")
+    log.info("Logging system initialized")
 ]
 
-; 加载配置
+; Load configuration
 fn load_app_config() -> AppConfig [
     try [
         new raw = cfg.load("config.json")
@@ -506,55 +506,55 @@ fn load_app_config() -> AppConfig [
             log_level: raw.log_level
         }
     ] catch (e Any) [
-        log.error("配置加载失败：{e}")
+        log.error("Config load failed: {e}")
         throw e
     ]
 ]
 
-; 主程序
+; Main program
 [
     try [
-        ; 加载配置
+        ; Load configuration
         new config = load_app_config()
-        
-        ; 初始化日志
+
+        ; Initialize logging
         init_logging(config.log_level)
-        
-        ; 连接数据库
+
+        ; Connect to database
         new db_conn = await db.connect(config.db_url)
-        log.info("数据库连接成功")
-        
-        ; 启动 API 服务器
+        log.info("Database connection successful")
+
+        ; Start API server
         await api.start(db_conn, config.port)
-        
+
     ] catch (e Any) [
-        log.error("应用启动失败：{e}")
+        log.error("Application startup failed: {e}")
         return 1
     ]
-    
+
     return 0
 ]
 ```
 
-### 工具模块
+### Utility Module
 
 ```catlang
 ; ==========================================
-; 文件：utils.catlang
-; 描述：通用工具函数
+; File: utils.catlang
+; Description: Common utility functions
 ; ==========================================
 
-; 字符串修剪
+; String trim
 fn trim(s: str) -> str [
-    ; 实现
+    ; Implementation
 ]
 
-; 字符串分割
+; String split
 fn split(s: str, delimiter: str) -> [str] [
-    ; 实现
+    ; Implementation
 ]
 
-; 数组映射
+; Array map
 fn map(arr: [T], fn: fn(T) -> U) -> [U] [
     new result [U; len(arr)]
     for (new i = 0, i < len(arr), i += 1) [
@@ -563,7 +563,7 @@ fn map(arr: [T], fn: fn(T) -> U) -> [U] [
     return result
 ]
 
-; 数组过滤
+; Array filter
 fn filter(arr: [T], predicate: fn(T) -> bool) -> [T] [
     new result [T]
     for (new item in arr) [
@@ -574,7 +574,7 @@ fn filter(arr: [T], predicate: fn(T) -> bool) -> [T] [
     return result
 ]
 
-; 数组归约
+; Array reduce
 fn reduce(arr: [T], initial: U, fn: fn(U, T) -> U) -> U [
     new acc = initial
     for (new item in arr) [
@@ -584,16 +584,16 @@ fn reduce(arr: [T], initial: U, fn: fn(U, T) -> U) -> U [
 ]
 ```
 
-## 10.8 练习
+## 10.8 Exercises
 
-1. 重构以下代码，使其符合最佳实践：
+1. Refactor the following code to follow best practices:
 
 ```catlang
-; 原始代码
+; Original code
 fn p(d)[new r=1;for(new i=1,i<=d,i+=1)[r=r*i];return r]
 ```
 
-2. 为以下函数添加适当的错误处理：
+2. Add appropriate error handling to the following function:
 
 ```catlang
 fn divide(a: i32, b: i32) -> i32 [
@@ -601,7 +601,7 @@ fn divide(a: i32, b: i32) -> i32 [
 ]
 ```
 
-3. 优化以下代码的性能：
+3. Optimize the performance of the following code:
 
 ```catlang
 fn find_max(arr: [i32]) -> i32 [
@@ -616,21 +616,21 @@ fn find_max(arr: [i32]) -> i32 [
 ```
 
 <details>
-<summary>参考答案</summary>
+<summary>Reference Answers</summary>
 
 ```catlang
-; 练习 1：重构
+; Exercise 1: Refactor
 fn factorial(n: i32) -> i32 [
     new result = 1
-    
+
     for (new i = 1, i <= n, i += 1) [
         result = result * i
     ]
-    
+
     return result
 ]
 
-; 练习 2：添加错误处理
+; Exercise 2: Add error handling
 struct DivisionError [
     dividend: i32
     divisor: i32
@@ -642,45 +642,45 @@ fn divide(a: i32, b: i32) -> i32 [
         throw DivisionError {
             dividend: a,
             divisor: 0,
-            reason: "除数不能为零"
+            reason: "Division by zero"
         }
     ]
     return a / b
 ]
 
-; 练习 3：性能优化
+; Exercise 3: Performance optimization
 fn find_max(arr: [i32]) -> i32 [
     if (len(arr) == 0) [
-        throw "空数组"
+        throw "Empty array"
     ]
-    
-    new len = len(arr)  ; 缓存长度
+
+    new len = len(arr)  ; Cache length
     new max = arr[0]
-    
-    for (new i = 1, i < len, i += 1) [  ; 从 1 开始
+
+    for (new i = 1, i < len, i += 1) [  ; Start from 1
         if (arr[i] > max) [
             max = arr[i]
         ]
     ]
-    
+
     return max
 ]
 ```
 </details>
 
-## 总结
+## Summary
 
-恭喜你完成了 CatLang 教程！你已经学习了：
+Congratulations on completing the CatLang tutorial! You've learned:
 
-1. ✅ 基础语法和类型系统
-2. ✅ 控制流和函数
-3. ✅ 数据结构和内存管理
-4. ✅ 错误处理和并发编程
-5. ✅ 模块导入和最佳实践
+1. ✅ Basic syntax and type system
+2. ✅ Control flow and functions
+3. ✅ Data structures and memory management
+4. ✅ Error handling and concurrent programming
+5. ✅ Module imports and best practices
 
-继续探索：
-- 阅读 [语法规范(已弃用)](../syntax.txt) 了解完整语法
-- 查看 `benchmark/` 和 `test/` 目录中的示例代码
-- 开始编写你自己的 CatLang 项目！
+Continue exploring:
+- Read [Syntax Specification (Deprecated)](../syntax.txt) for complete syntax
+- Check example code in `benchmark/` and `test/` directories
+- Start writing your own CatLang projects!
 
-祝编程愉快！🐱
+Happy coding! 🐱

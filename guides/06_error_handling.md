@@ -1,57 +1,57 @@
-# 第 06 章：错误处理
+# Chapter 06: Error Handling
 
-本章介绍 CatLang 的错误处理机制：try/catch、throw 和自定义错误类型。
+This chapter introduces CatLang's error handling mechanism: try/catch, throw, and custom error types.
 
-## 6.1 抛出错误
+## 6.1 Throwing Errors
 
-使用 `throw` 关键字抛出错误：
+Use the `throw` keyword to throw errors:
 
-### 基本用法
+### Basic Usage
 
 ```catlang
 [
-    new error_msg = "发生错误"
+    new error_msg = "An error occurred"
     throw error_msg
 ]
 ```
 
-### 在函数中抛出
+### Throw in Functions
 
 ```catlang
 fn divide(a: i32, b: i32) -> i32 [
     if (b == 0) [
-        throw "除数不能为零"
+        throw "Division by zero"
     ]
     return a / b
 ]
 
 [
     new result = divide(10, 2)
-    print("结果：{result}")
-    
-    ; 这行不会执行，因为会抛出错误
+    print("Result: {result}")
+
+    ; This line won't execute because it throws an error
     new error_result = divide(10, 0)
-    
+
     return 0
 ]
 ```
 
-## 6.2 捕获错误
+## 6.2 Catching Errors
 
-使用 `try/catch` 语句捕获和处理错误：
+Use `try/catch` statements to catch and handle errors:
 
-### 基本 try/catch
+### Basic try/catch
 
 ```catlang
 try [
     new result = divide(10, 0)
-    print("结果：{result}")
+    print("Result: {result}")
 ] catch (e Any) [
-    print("捕获到错误：{e}")
+    print("Caught error: {e}")
 ]
 ```
 
-### 类型匹配的 catch
+### Type-Matching catch
 
 ```catlang
 struct MathError [
@@ -61,7 +61,7 @@ struct MathError [
 
 fn safe_divide(a: i32, b: i32) -> i32 [
     if (b == 0) [
-        throw MathError { code: 1, message: "除零错误" }
+        throw MathError { code: 1, message: "Division by zero error" }
     ]
     return a / b
 ]
@@ -69,18 +69,18 @@ fn safe_divide(a: i32, b: i32) -> i32 [
 [
     try [
         new result = safe_divide(10, 0)
-        print("结果：{result}")
+        print("Result: {result}")
     ] catch (err MathError) [
-        print("数学错误：[{err.code}] {err.message}")
+        print("Math error: [{err.code}] {err.message}")
     ] catch (e Any) [
-        print("未知错误：{e}")
+        print("Unknown error: {e}")
     ]
-    
+
     return 0
 ]
 ```
 
-### 多个 catch 子句
+### Multiple catch Clauses
 
 ```catlang
 struct FileError [
@@ -94,60 +94,60 @@ struct NetworkError [
 ]
 
 fn risky_operation() [
-    ; 可能抛出不同类型的错误
-    throw FileError { path: "/data.txt", reason: "文件不存在" }
+    ; May throw different types of errors
+    throw FileError { path: "/data.txt", reason: "File not found" }
 ]
 
 [
     try [
         risky_operation()
     ] catch (fe FileError) [
-        print("文件错误：{fe.path} - {fe.reason}")
+        print("File error: {fe.path} - {fe.reason}")
     ] catch (ne NetworkError) [
-        print("网络错误：{ne.url} - 状态码 {ne.status}")
+        print("Network error: {ne.url} - Status {ne.status}")
     ] catch (e Any) [
-        print("其他错误：{e}")
+        print("Other error: {e}")
     ]
-    
+
     return 0
 ]
 ```
 
-## 6.3 自定义错误类型
+## 6.3 Custom Error Types
 
-### 定义错误结构体
+### Define Error Structs
 
 ```catlang
-; 验证错误
+; Validation error
 struct ValidationError [
     field: str
     message: str
 ]
 
-; 解析错误
+; Parse error
 struct ParseError [
     input: str
     position: i32
     expected: str
 ]
 
-; 系统错误
+; System error
 struct SystemError [
     code: i32
     message: str
 ]
 ```
 
-### 错误类型层次
+### Error Type Hierarchy
 
 ```catlang
-; 基础错误类型
+; Base error type
 struct AppError [
     code: i32
     message: str
 ]
 
-; 特定错误类型
+; Specific error types
 struct DatabaseError [
     query: str
     inner: AppError
@@ -159,9 +159,9 @@ struct HttpError [
 ]
 ```
 
-## 6.4 错误传播
+## 6.4 Error Propagation
 
-### 重新抛出错误
+### Re-throw Errors
 
 ```catlang
 fn process_data(data: str) [
@@ -170,16 +170,16 @@ fn process_data(data: str) [
         parse(data)
         save(data)
     ] catch (e ValidationError) [
-        print("验证失败：{e.message}")
-        throw e  ; 重新抛出
+        print("Validation failed: {e.message}")
+        throw e  ; Re-throw
     ] catch (e Any) [
-        print("处理失败：{e}")
+        print("Processing failed: {e}")
         throw e
     ]
 ]
 ```
 
-### 错误转换
+### Error Translation
 
 ```catlang
 fn read_config(path: str) -> Config [
@@ -189,36 +189,36 @@ fn read_config(path: str) -> Config [
     ] catch (fe FileError) [
         throw ConfigError {
             code: 1,
-            message: "无法读取配置文件：{fe.reason}"
+            message: "Cannot read config file: {fe.reason}"
         }
     ] catch (pe ParseError) [
         throw ConfigError {
             code: 2,
-            message: "配置格式错误：{pe.expected}"
+            message: "Config format error: {pe.expected}"
         }
     ]
 ]
 ```
 
-## 6.5 try 表达式
+## 6.5 try Expressions
 
-### try 块作为表达式
+### try Blocks as Expressions
 
 ```catlang
 fn get_value() -> i32 [
     new result = try [
         risky_calculation()
     ] catch (e Any) [
-        print("计算失败，使用默认值")
-        0  ; catch 块的返回值
+        print("Calculation failed, using default value")
+        0  ; Return value of catch block
     ]
     return result
 ]
 ```
 
-## 6.6 综合示例
+## 6.6 Comprehensive Examples
 
-### 示例 1：用户注册验证
+### Example 1: User Registration Validation
 
 ```catlang
 struct RegistrationError [
@@ -232,14 +232,14 @@ fn validate_email(email: str) [
         throw RegistrationError {
             field: "email",
             code: "TOO_SHORT",
-            message: "邮箱地址太短"
+            message: "Email address is too short"
         }
     ]
     if (!contains(email, "@")) [
         throw RegistrationError {
             field: "email",
             code: "INVALID_FORMAT",
-            message: "邮箱格式不正确"
+            message: "Email format is incorrect"
         }
     ]
 ]
@@ -249,7 +249,7 @@ fn validate_password(password: str) [
         throw RegistrationError {
             field: "password",
             code: "TOO_WEAK",
-            message: "密码长度至少为 8 位"
+            message: "Password must be at least 8 characters"
         }
     ]
 ]
@@ -258,22 +258,22 @@ fn register_user(email: str, password: str) [
     try [
         validate_email(email)
         validate_password(password)
-        print("注册成功！")
+        print("Registration successful!")
     ] catch (e RegistrationError) [
-        print("注册失败：[{e.field}] {e.code} - {e.message}")
+        print("Registration failed: [{e.field}] {e.code} - {e.message}")
     ]
 ]
 
 [
-    register_user("alice@example.com", "secure123")  ; 成功
-    register_user("bob", "weak")  ; 失败
-    register_user("charlie@example.com", "strongpass")  ; 成功
-    
+    register_user("alice@example.com", "secure123")  ; Success
+    register_user("bob", "weak")  ; Failure
+    register_user("charlie@example.com", "strongpass")  ; Success
+
     return 0
 ]
 ```
 
-### 示例 2：文件处理
+### Example 2: File Processing
 
 ```catlang
 struct FileError [
@@ -288,12 +288,12 @@ fn read_file_safe(path: str) -> str [
             throw FileError {
                 path: path,
                 operation: "read",
-                reason: "文件不存在"
+                reason: "File does not exist"
             }
         ]
         return read_file(path)
     ] catch (e FileError) [
-        print("文件操作失败：{e.path} - {e.reason}")
+        print("File operation failed: {e.path} - {e.reason}")
         throw e
     ]
 ]
@@ -303,11 +303,11 @@ fn process_file(input_path: str, output_path: str) [
         new content = read_file_safe(input_path)
         new processed = transform(content)
         write_file(output_path, processed)
-        print("文件处理完成")
+        print("File processing complete")
     ] catch (e FileError) [
-        print("无法处理文件：{e.path}")
+        print("Cannot process file: {e.path}")
     ] catch (e Any) [
-        print("未知错误：{e}")
+        print("Unknown error: {e}")
     ]
 ]
 
@@ -317,7 +317,7 @@ fn process_file(input_path: str, output_path: str) [
 ]
 ```
 
-### 示例 3：网络请求
+### Example 3: Network Requests
 
 ```catlang
 struct HttpError [
@@ -336,72 +336,72 @@ fn fetch_url(url: str, timeout: i32) -> str [
         throw HttpError {
             url: url,
             status: 400,
-            message: "无效的超时时间"
+            message: "Invalid timeout"
         }
     ]
-    
-    ; 模拟网络请求
+
+    ; Simulate network request
     if (contains(url, "error")) [
         throw HttpError {
             url: url,
             status: 500,
-            message: "服务器错误"
+            message: "Server error"
         }
     ]
-    
+
     if (timeout < 100) [
         throw TimeoutError {
             url: url,
             timeout_ms: timeout
         }
     ]
-    
-    return "响应内容"
+
+    return "Response content"
 ]
 
 fn fetch_with_retry(url: str, max_retries: i32) -> str [
     new attempt = 0
-    
+
     while (attempt < max_retries) [
         try [
             return fetch_url(url, 1000 * (attempt + 1))
         ] catch (e TimeoutError) [
             attempt = attempt + 1
-            print("超时，重试 {attempt}/{max_retries}")
+            print("Timeout, retry {attempt}/{max_retries}")
         ] catch (e HttpError) [
             if (e.status >= 500) [
                 attempt = attempt + 1
-                print("服务器错误，重试 {attempt}/{max_retries}")
+                print("Server error, retry {attempt}/{max_retries}")
             ] else [
-                print("客户端错误：{e.message}")
+                print("Client error: {e.message}")
                 throw e
             ]
         ] catch (e Any) [
-            print("未知错误：{e}")
+            print("Unknown error: {e}")
             throw e
         ]
     ]
-    
+
     throw HttpError {
         url: url,
         status: 503,
-        message: "服务不可用"
+        message: "Service unavailable"
     }
 ]
 
 [
     try [
         new content = fetch_with_retry("https://api.example.com/data", 3)
-        print("获取成功：{content}")
+        print("Fetch successful: {content}")
     ] catch (e Any) [
-        print("请求失败：{e}")
+        print("Request failed: {e}")
     ]
-    
+
     return 0
 ]
 ```
 
-### 示例 4：计算器错误处理
+### Example 4: Calculator Error Handling
 
 ```catlang
 struct CalcError [
@@ -421,7 +421,7 @@ fn calculate(a: i32, b: i32, op: str) -> i32 [
             if (b == 0) [
                 throw CalcError {
                     operation: "/",
-                    message: "除数不能为零"
+                    message: "Division by zero"
                 }
             ]
             return a / b
@@ -429,39 +429,39 @@ fn calculate(a: i32, b: i32, op: str) -> i32 [
             if (b == 0) [
                 throw CalcError {
                     operation: "%",
-                    message: "取模的除数不能为零"
+                    message: "Modulo by zero"
                 }
             ]
             return a % b
         default:
             throw CalcError {
                 operation: op,
-                message: "未知运算符"
+                message: "Unknown operator"
             }
     ]
 ]
 
 [
     new operations = [["+", 10, 5], ["-", 10, 5], ["*", 10, 5], ["/", 10, 0], ["%", 10, 0], ["^", 10, 5]]
-    
+
     for (new i = 0, i < 6, i += 1) [
         new op = operations[i][0]
         new a = operations[i][1]
         new b = operations[i][2]
-        
+
         try [
             new result = calculate(a, b, op)
             print("{a} {op} {b} = {result}")
         ] catch (e CalcError) [
-            print("计算错误：{a} {op} {b} - {e.message}")
+            print("Calculation error: {a} {op} {b} - {e.message}")
         ]
     ]
-    
+
     return 0
 ]
 ```
 
-### 示例 5：数据库操作
+### Example 5: Database Operations
 
 ```catlang
 struct DbError [
@@ -479,7 +479,7 @@ fn connect_db(host: str, port: i32) [
     if (host == "") [
         throw ConnectionError { host: host, port: port }
     ]
-    print("连接到 {host}:{port}")
+    print("Connect to {host}:{port}")
 ]
 
 fn execute_query(query: str) [
@@ -487,29 +487,29 @@ fn execute_query(query: str) [
         throw DbError {
             query: query,
             code: 403,
-            message: "禁止执行 DROP 操作"
+            message: "DROP operation forbidden"
         }
     ]
-    print("执行查询：{query}")
+    print("Execute query: {query}")
 ]
 
 fn run_transaction(queries: [str]) [
     try [
         connect_db("localhost", 5432)
-        
+
         for (new i = 0, i < len(queries), i += 1) [
             execute_query(queries[i])
         ]
-        
-        print("事务完成")
+
+        print("Transaction complete")
     ] catch (e ConnectionError) [
-        print("连接失败：{e.host}:{e.port}")
+        print("Connection failed: {e.host}:{e.port}")
         throw e
     ] catch (e DbError) [
-        print("数据库错误：[{e.code}] {e.message}")
+        print("Database error: [{e.code}] {e.message}")
         throw e
     ] catch (e Any) [
-        print("未知错误：{e}")
+        print("Unknown error: {e}")
         throw e
     ]
 ]
@@ -518,19 +518,19 @@ fn run_transaction(queries: [str]) [
     try [
         run_transaction(["SELECT * FROM users", "INSERT INTO logs", "UPDATE stats"])
     ] catch (e Any) [
-        print("事务失败")
+        print("Transaction failed")
     ]
-    
+
     return 0
 ]
 ```
 
-## 6.7 错误处理最佳实践
+## 6.7 Error Handling Best Practices
 
-### 1. 使用具体的错误类型
+### 1. Use Specific Error Types
 
 ```catlang
-; 好的做法
+; Good practice
 struct SpecificError [
     context: str
     message: str
@@ -539,43 +539,43 @@ struct SpecificError [
 try [
     operation()
 ] catch (e SpecificError) [
-    ; 可以访问具体字段
-    print("上下文：{e.context}")
+    ; Can access specific fields
+    print("Context: {e.context}")
 ]
 
-; 不好的做法
+; Bad practice
 try [
     operation()
 ] catch (e Any) [
-    ; 丢失了具体信息
+    ; Lost specific information
 ]
 ```
 
-### 2. 提供有意义的错误信息
+### 2. Provide Meaningful Error Messages
 
 ```catlang
-; 好的做法
+; Good practice
 throw ValidationError {
     field: "email",
-    message: "邮箱格式不正确，应包含 @"
+    message: "Email format is incorrect, should contain @"
 }
 
-; 不好的做法
-throw "错误"
+; Bad practice
+throw "Error"
 ```
 
-### 3. 在合适的层级处理错误
+### 3. Handle Errors at Appropriate Levels
 
 ```catlang
-; 底层：抛出具体错误
+; Low level: throw specific errors
 fn parse_int(s: str) -> i32 [
     if (!is_numeric(s)) [
-        throw ParseError { input: s, expected: "数字" }
+        throw ParseError { input: s, expected: "Number" }
     ]
     ; ...
 ]
 
-; 中层：转换或传播错误
+; Middle level: translate or propagate errors
 fn process_input(s: str) [
     try [
         new num = parse_int(s)
@@ -585,45 +585,45 @@ fn process_input(s: str) [
     ]
 ]
 
-; 高层：向用户展示友好信息
+; High level: show user-friendly messages
 [
     try [
         process_input(user_input)
     ] catch (e Any) [
-        print("输入无效，请检查后重试")
+        print("Invalid input, please check and try again")
     ]
 ]
 ```
 
-### 4. 不要忽略错误
+### 4. Don't Ignore Errors
 
 ```catlang
-; 不好的做法 - 空的 catch 块
+; Bad practice - empty catch block
 try [
     risky_operation()
 ] catch (e Any) [
-    ; 忽略错误
+    ; Ignore error
 ]
 
-; 好的做法 - 至少记录错误
+; Good practice - at least log the error
 try [
     risky_operation()
 ] catch (e Any) [
-    print("警告：操作失败 - {e}")
+    print("Warning: Operation failed - {e}")
 ]
 ```
 
-## 6.8 练习
+## 6.8 Exercises
 
-1. 创建一个 `DivisionError` 类型，包含被除数、除数和原因字段
-2. 编写一个函数安全地解析字符串为整数，处理各种错误情况
-3. 实现一个简单的状态机，在不同状态下可能抛出不同类型的错误
+1. Create a `DivisionError` type with dividend, divisor, and reason fields
+2. Write a function to safely parse strings to integers, handling various error cases
+3. Implement a simple state machine that may throw different types of errors in different states
 
 <details>
-<summary>参考答案</summary>
+<summary>Reference Answers</summary>
 
 ```catlang
-; 练习 1：除法错误
+; Exercise 1: Division error
 struct DivisionError [
     dividend: i32
     divisor: i32
@@ -635,7 +635,7 @@ fn safe_divide(a: i32, b: i32) -> i32 [
         throw DivisionError {
             dividend: a,
             divisor: 0,
-            reason: "除数不能为零"
+            reason: "Division by zero"
         }
     ]
     return a / b
@@ -645,21 +645,21 @@ fn safe_divide(a: i32, b: i32) -> i32 [
     try [
         new result = safe_divide(10, 0)
     ] catch (e DivisionError) [
-        print("错误：{e.dividend} / {e.divisor} - {e.reason}")
+        print("Error: {e.dividend} / {e.divisor} - {e.reason}")
     ]
     return 0
 ]
 
-; 练习 2：安全解析整数
+; Exercise 2: Safe integer parsing
 fn parse_int_safe(s: str) -> i32 [
     if (len(s) == 0) [
-        throw ParseError { input: s, position: 0, expected: "非空字符串" }
+        throw ParseError { input: s, position: 0, expected: "Non-empty string" }
     ]
-    ; 简化实现
+    ; Simplified implementation
     return 42
 ]
 
-; 练习 3：状态机
+; Exercise 3: State machine
 struct StateError [
     current_state: str
     expected_state: str
@@ -682,7 +682,7 @@ fn transition(current: str, action: str) -> str [
 ```
 </details>
 
-## 下一步
+## Next Steps
 
-- [第 07 章：内存管理](07_memory_management.md) - unsafe 深入、内存操作
-- [第 08 章：并发编程](08_concurrency.md) - async/await、spawn 任务
+- [Chapter 07: Memory Management](07_memory_management.md) - unsafe deep dive, memory operations
+- [Chapter 08: Concurrency](08_concurrency.md) - async/await, spawn tasks

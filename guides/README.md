@@ -1,37 +1,37 @@
-# CatLang 教程索引
+# CatLang Tutorial Index
 
-欢迎来到 CatLang 编程语言教程！本教程将带你从零开始学习 CatLang。
+Welcome to the CatLang programming language tutorial! This tutorial will take you from zero to mastery in CatLang.
 
-## 教程目录
+## Tutorial Directory
 
-| 章节 | 标题 | 描述 |
+| Chapter | Title | Description |
 |------|------|------|
-| [00](00_base_env.md) | 环境配置 | 下载 Zig、编译/下载 CatLang |
-| [01](01_getting_started.md) | 快速开始 | 第一个程序、编译运行 |
-| [02](02_basic_syntax.md) | 基础语法 | 变量、类型、运算符、注释 |
-| [03](03_control_flow.md) | 控制流 | 条件、循环、模式匹配 |
-| [04](04_functions.md) | 函数 | 定义、参数、返回值、异步函数 |
-| [05](05_data_structures.md) | 数据结构 | 结构体、数组、指针、泛型 |
-| [06](06_error_handling.md) | 错误处理 | try/catch、throw、自定义错误 |
-| [07](07_memory_management.md) | 内存管理 | unsafe 块、内存重解释、cpy |
-| [08](08_concurrency.md) | 并发编程 | async/await、spawn 任务 |
-| [09](09_modules_imports.md) | 模块与导入 | 第三方库导入、模块组织 |
-| [10](10_best_practices.md) | 最佳实践 | 代码风格、常见陷阱、性能提示 |
-| [11](11_type_system.md) | 类型系统深入 | 泛型类型、任意位宽类型 |
+| [00](00_base_env.md) | Environment Setup | Download Zig, compile/download CatLang |
+| [01](01_getting_started.md) | Quick Start | First program, compile and run |
+| [02](02_basic_syntax.md) | Basic Syntax | Variables, types, operators, comments |
+| [03](03_control_flow.md) | Control Flow | Conditions, loops, pattern matching |
+| [04](04_functions.md) | Functions | Definition, parameters, return values, async functions |
+| [05](05_data_structures.md) | Data Structures | Structs, arrays, pointers, generics |
+| [06](06_error_handling.md) | Error Handling | try/catch, throw, custom errors |
+| [07](07_memory_management.md) | Memory Management | unsafe blocks, memory reinterpretation, cpy |
+| [08](08_concurrency.md) | Concurrency | async/await, spawn tasks |
+| [09](09_modules_imports.md) | Modules & Imports | Third-party library imports, module organization |
+| [10](10_best_practices.md) | Best Practices | Code style, common pitfalls, performance tips |
+| [11](11_type_system.md) | Deep Dive into Type System | Generic types, arbitrary bit-width types |
 
-## 快速导航
+## Quick Navigation
 
-- **新手入门**：从 [第 00 章](00_base_env.md) 开始配置环境
-- **查阅语法**：参考 [基础语法](02_basic_syntax.md) 或 [语法规范](../syntax.txt)
-- **类型系统**：查看 [类型系统深入](11_type_system.md) 了解泛型和任意位宽类型
-- **示例代码**：查看 `benchmark/` 和 `test/` 目录
+- **Getting Started**: Start with [Chapter 00](00_base_env.md) to set up your environment
+- **Look up Syntax**: Refer to [Basic Syntax](02_basic_syntax.md) or [Syntax Specification](../syntax.txt)
+- **Type System**: Check [Deep Dive into Type System](11_type_system.md) for generics and arbitrary bit-width types
+- **Example Code**: See `benchmark/` and `test/` directories
 
-## 关于 CatLang
+## About CatLang
 
-CatLang 是一门注重以下设计原则的系统级编程语言：
+CatLang is a systems programming language that focuses on the following design principles:
 
-1. **零样板** - 标准库功能自动注入，无需导入
-2. **按需导入** - 仅第三方库需要显式导入
-3. **安全与控制平衡** - 默认安全，通过 `unsafe` 提供底层控制
-4. **高辨识度语法** - 方括号代码块 `[]`，分号注释 `;`
-5. **灵活的类型系统** - 支持泛型类型和任意位宽类型
+1. **Zero Boilerplate** - Standard library features are automatically injected, no imports needed
+2. **On-Demand Imports** - Only third-party libraries require explicit imports
+3. **Safety-Control Balance** - Safe by default, with low-level control via `unsafe`
+4. **Distinctive Syntax** - Square bracket code blocks `[]`, semicolon comments `;`
+5. **Flexible Type System** - Support for generic types and arbitrary bit-width types

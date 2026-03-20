@@ -4,7 +4,7 @@
 
 **一门简洁、安全、高性能的系统级编程语言**
 
-[性能基准](BENCHMARK_RESULTS.md) | [语法文档(弃用)](syntax.txt) | [示例代码](test) | [教程](guides/README.md)
+[性能基准](BENCHMARK_RESULTS.md) | [语法文档(弃用)](syntax.txt) | [教程](guides_zh_cn/README.md)
 
 </div>
 

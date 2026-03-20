@@ -1,51 +1,51 @@
-# 第 08 章：并发编程
+# Chapter 08: Concurrency
 
-本章介绍 CatLang 的并发编程模型：async/await、spawn 任务和并发原语。
+This chapter introduces CatLang's concurrency model: async/await, spawn tasks, and concurrency primitives.
 
-## 8.1 异步函数
+## 8.1 Async Functions
 
-### 定义异步函数
+### Define Async Functions
 
-使用 `async fn` 定义异步函数：
+Define async functions using `async fn`:
 
 ```catlang
 async fn fetch_data(id: i32) -> Result [
-    ; 模拟网络延迟
+    ; Simulate network delay
     await sleep(100)
-    print("获取数据：{id}")
+    print("Fetching data: {id}")
     return Result
 ]
 
 [
-    ; 调用异步函数
+    ; Call async function
     new data = await fetch_data(1)
     return 0
 ]
 ```
 
-### 异步函数特点
+### Async Function Characteristics
 
-- 只能在 `async` 上下文中调用
-- 可以包含 `await` 表达式
-- 返回 `Result` 或 `Future` 类型
+- Can only be called in `async` context
+- Can contain `await` expressions
+- Returns `Result` or `Future` type
 
-## 8.2 Await 表达式
+## 8.2 Await Expressions
 
-### 基本用法
+### Basic Usage
 
 ```catlang
 async fn task1() [
     await sleep(100)
-    print("任务 1 完成")
+    print("Task 1 complete")
 ]
 
 async fn task2() [
     await sleep(200)
-    print("任务 2 完成")
+    print("Task 2 complete")
 ]
 
 async fn run_tasks() [
-    ; 顺序执行
+    ; Sequential execution
     await task1()
     await task2()
 ]
@@ -56,83 +56,83 @@ async fn run_tasks() [
 ]
 ```
 
-### Await 限制
+### Await Restrictions
 
-`await` 只能在异步上下文中使用：
+`await` can only be used in async contexts:
 
 ```catlang
-; 错误：await 在非异步函数中
+; Error: await in non-async function
 fn wrong() [
-    await sleep(100)  ; 编译错误
+    await sleep(100)  ; Compile error
 ]
 
-; 正确
+; Correct
 async fn correct() [
     await sleep(100)
 ]
 ```
 
-## 8.3 Spawn 任务
+## 8.3 Spawn Tasks
 
-使用 `spawn` 启动独立并发任务：
+Use `spawn` to start independent concurrent tasks:
 
-### 基本用法
+### Basic Usage
 
 ```catlang
 [
-    ; 启动后台任务
+    ; Start background task
     new handle = spawn async [
         for (new i = 0, i < 5, i += 1) [
             await sleep(100)
-            print("后台任务：{i}")
+            print("Background task: {i}")
         ]
     ]
-    
-    ; 等待任务完成
+
+    ; Wait for task completion
     await handle
-    
-    print("所有任务完成")
+
+    print("All tasks complete")
     return 0
 ]
 ```
 
-### 多个并发任务
+### Multiple Concurrent Tasks
 
 ```catlang
 [
-    ; 启动多个并发任务
+    ; Start multiple concurrent tasks
     new handle1 = spawn async [
         await sleep(100)
-        print("任务 1")
+        print("Task 1")
     ]
-    
+
     new handle2 = spawn async [
         await sleep(150)
-        print("任务 2")
+        print("Task 2")
     ]
-    
+
     new handle3 = spawn async [
         await sleep(200)
-        print("任务 3")
+        print("Task 3")
     ]
-    
-    ; 等待所有任务
+
+    ; Wait for all tasks
     await handle1
     await handle2
     await handle3
-    
+
     return 0
 ]
 ```
 
-## 8.4 异步综合示例
+## 8.4 Async Comprehensive Examples
 
-### 示例 1：并发数据获取
+### Example 1: Concurrent Data Fetching
 
 ```catlang
 async fn fetch_user(id: i32) -> str [
     await sleep(50)
-    return "用户{id}"
+    return "User{id}"
 ]
 
 async fn fetch_posts(user: str) -> i32 [
@@ -146,25 +146,25 @@ async fn fetch_comments(post_id: i32) -> i32 [
 ]
 
 async fn get_user_stats(user_id: i32) [
-    ; 顺序方式（较慢）
+    ; Sequential approach (slower)
     new user = await fetch_user(user_id)
     new posts = await fetch_posts(user)
     new comments = await fetch_comments(posts)
-    
-    print("用户：{user}, 帖子：{posts}, 评论：{comments}")
+
+    print("User: {user}, Posts: {posts}, Comments: {comments}")
 ]
 
 async fn get_user_stats_parallel(user_id: i32) [
-    ; 并发方式（较快）
+    ; Parallel approach (faster)
     new user_future = spawn fetch_user(user_id)
-    new posts_future = spawn fetch_posts("用户 1")
+    new posts_future = spawn fetch_posts("User 1")
     new comments_future = spawn fetch_comments(10)
-    
+
     new user = await user_future
     new posts = await posts_future
     new comments = await comments_future
-    
-    print("用户：{user}, 帖子：{posts}, 评论：{comments}")
+
+    print("User: {user}, Posts: {posts}, Comments: {comments}")
 ]
 
 [
@@ -174,7 +174,7 @@ async fn get_user_stats_parallel(user_id: i32) [
 ]
 ```
 
-### 示例 2：生产者 - 消费者模式
+### Example 2: Producer-Consumer Pattern
 
 ```catlang
 struct Channel [
@@ -186,12 +186,12 @@ struct Channel [
 
 async fn producer(channel: Channel, count: i32) [
     for (new i = 0, i < count, i += 1) [
-        ; 生产数据
+        ; Produce data
         channel.buffer[channel.tail] = i
         channel.tail = (channel.tail + 1) % 10
         channel.count = channel.count + 1
-        
-        print("生产：{i}")
+
+        print("Produce: {i}")
         await sleep(50)
     ]
 }
@@ -201,64 +201,64 @@ async fn consumer(channel: Channel) [
         while (channel.count == 0) [
             await sleep(10)
         ]
-        
-        ; 消费数据
+
+        ; Consume data
         new value = channel.buffer[channel.head]
         channel.head = (channel.head + 1) % 10
         channel.count = channel.count - 1
-        
-        print("消费：{value}")
+
+        print("Consume: {value}")
         await sleep(30)
     ]
-}
+]
 
 [
     new ch = Channel { head: 0, tail: 0, count: 0 }
-    
+
     new prod_handle = spawn producer(ch, 5)
     new cons_handle = spawn consumer(ch)
-    
+
     await prod_handle
     await cons_handle
-    
+
     return 0
 ]
 ```
 
-### 示例 3：超时处理
+### Example 3: Timeout Handling
 
 ```catlang
 async fn slow_operation() -> str [
     await sleep(500)
-    return "完成"
+    return "Complete"
 ]
 
 async fn with_timeout(operation: async, timeout_ms: i32) -> str [
     new op_handle = spawn operation
-    
+
     new timeout_handle = spawn async [
         await sleep(timeout_ms)
-        throw "超时"
+        throw "Timeout"
     ]
-    
-    ; 等待任一完成
-    ; 注意：这是伪代码，实际需要 select/race 语义
+
+    ; Wait for either to complete
+    ; Note: This is pseudo-code, actual select/race semantics needed
     return await op_handle
 ]
 
 [
     try [
         new result = await with_timeout(slow_operation(), 1000)
-        print("结果：{result}")
+        print("Result: {result}")
     ] catch (e Any) [
-        print("错误：{e}")
+        print("Error: {e}")
     ]
-    
+
     return 0
 ]
 ```
 
-### 示例 4：并行计算
+### Example 4: Parallel Computing
 
 ```catlang
 async fn compute_chunk(start: i32, end: i32) -> i32 [
@@ -272,33 +272,33 @@ async fn compute_chunk(start: i32, end: i32) -> i32 [
 async fn parallel_sum(total: i32, chunks: i32) -> i32 [
     new chunk_size = total / chunks
     new handles [async]
-    
-    ; 启动多个计算任务
+
+    ; Start multiple compute tasks
     for (new i = 0, i < chunks, i += 1) [
         new start = i * chunk_size
         new end = (i + 1) * chunk_size
         new handle = spawn compute_chunk(start, end)
         handles[i] = handle
     ]
-    
-    ; 收集结果
+
+    ; Collect results
     new total_sum = 0
     for (new i = 0, i < chunks, i += 1) [
         new partial = await handles[i]
         total_sum = total_sum + partial
     ]
-    
+
     return total_sum
 ]
 
 [
     new result = await parallel_sum(1000, 4)
-    print("平方和：{result}")
+    print("Sum of squares: {result}")
     return 0
 ]
 ```
 
-### 示例 5：异步事件循环
+### Example 5: Async Event Loop
 
 ```catlang
 struct Event [
@@ -307,10 +307,10 @@ struct Event [
 ]
 
 async fn event_listener(queue: Channel) [
-    ; 模拟事件监听
+    ; Simulate event listening
     for (new i = 0, i < 5, i += 1) [
         await sleep(100)
-        new event = Event { type: "click", data: "按钮{i}" }
+        new event = Event { type: "click", data: "Button{i}" }
         queue.send(event)
     ]
 }
@@ -318,30 +318,30 @@ async fn event_listener(queue: Channel) [
 async fn event_handler(queue: Channel) [
     while (true) [
         new event = await queue.receive()
-        print("处理事件：{event.type} - {event.data}")
-        
-        if (event.data == "按钮 4") [
+        print("Handle event: {event.type} - {event.data}")
+
+        if (event.data == "Button 4") [
             break
         ]
     ]
-}
+]
 
 [
     new queue = Channel { }
-    
+
     new listener_handle = spawn event_listener(queue)
     new handler_handle = spawn event_handler(queue)
-    
+
     await listener_handle
     await handler_handle
-    
+
     return 0
 ]
 ```
 
-## 8.5 并发原语
+## 8.5 Concurrency Primitives
 
-### 互斥锁（伪代码）
+### Mutex (Pseudo-code)
 
 ```catlang
 struct Mutex [
@@ -355,7 +355,7 @@ impl Mutex [
         ]
         self.locked = true
     ]
-    
+
     fn unlock(self: Mutex) [
         self.locked = false
     ]
@@ -363,28 +363,28 @@ impl Mutex [
 
 async fn critical_section(mutex: Mutex, id: i32) [
     mutex.lock()
-    print("线程{id}进入临界区")
+    print("Thread{id} enters critical section")
     await sleep(50)
-    print("线程{id}离开临界区")
+    print("Thread{id} leaves critical section")
     mutex.unlock()
 ]
 
 [
     new mutex = Mutex { locked: false }
-    
+
     new h1 = spawn critical_section(mutex, 1)
     new h2 = spawn critical_section(mutex, 2)
     new h3 = spawn critical_section(mutex, 3)
-    
+
     await h1
     await h2
     await h3
-    
+
     return 0
 ]
 ```
 
-### 信号量（伪代码）
+### Semaphore (Pseudo-code)
 
 ```catlang
 struct Semaphore [
@@ -398,14 +398,14 @@ impl Semaphore [
         ]
         self.count = self.count - 1
     ]
-    
+
     fn release(self: Semaphore) [
         self.count = self.count + 1
     ]
 ]
 ```
 
-### 读写锁（伪代码）
+### Read-Write Lock (Pseudo-code)
 
 ```catlang
 struct RwLock [
@@ -420,67 +420,67 @@ impl RwLock [
         ]
         self.readers = self.readers + 1
     ]
-    
+
     fn read_unlock(self: RwLock) [
         self.readers = self.readers - 1
     ]
-    
+
     fn write_lock(self: RwLock) [
         while (self.writer || self.readers > 0) [
             await sleep(1)
         ]
         self.writer = true
     ]
-    
+
     fn write_unlock(self: RwLock) [
         self.writer = false
     ]
 ]
 ```
 
-## 8.6 异步最佳实践
+## 8.6 Async Best Practices
 
-### 1. 避免阻塞
+### 1. Avoid Blocking
 
 ```catlang
-; 不好的做法 - 在异步代码中使用同步等待
+; Bad practice - use sync wait in async code
 async fn bad() [
-    ; 阻塞整个事件循环
+    ; Blocks entire event loop
     sync_wait(something)
 ]
 
-; 好的做法 - 使用异步原语
+; Good practice - use async primitives
 async fn good() [
     await something_async()
 ]
 ```
 
-### 2. 合理使用并发
+### 2. Use Concurrency Appropriately
 
 ```catlang
-; 不需要并发的情况（顺序执行即可）
+; No concurrency needed (sequential is fine)
 async fn sequential() [
     new a = await fetch_a()
-    new b = await fetch_b(a)  ; 依赖 a
-    new c = await fetch_c(b)  ; 依赖 b
+    new b = await fetch_b(a)  ; Depends on a
+    new c = await fetch_c(b)  ; Depends on b
     return c
 ]
 
-; 需要并发的情况
+; Concurrency needed
 async fn parallel() [
     new h1 = spawn fetch_x()
     new h2 = spawn fetch_y()
     new h3 = spawn fetch_z()
-    
+
     new x = await h1
     new y = await h2
     new z = await h3
-    
+
     return combine(x, y, z)
 ]
 ```
 
-### 3. 错误传播
+### 3. Error Propagation
 
 ```catlang
 async fn safe_operation() -> Result [
@@ -489,50 +489,50 @@ async fn safe_operation() -> Result [
         new processed = await process(data)
         return processed
     ] catch (e Any) [
-        print("操作失败：{e}")
+        print("Operation failed: {e}")
         throw e
     ]
 ]
 ```
 
-### 4. 资源清理
+### 4. Resource Cleanup
 
 ```catlang
 async fn with_resource() [
     new resource = await acquire_resource()
-    
+
     try [
         await use_resource(resource)
     ] catch (e Any) [
-        print("使用资源失败：{e}")
+        print("Resource usage failed: {e}")
     ]
-    
-    ; 确保清理
+
+    ; Ensure cleanup
     await release_resource(resource)
 ]
 ```
 
-## 8.7 练习
+## 8.7 Exercises
 
-1. 创建两个并发任务，一个打印奇数，一个打印偶数，各打印 5 次
-2. 实现一个异步函数，模拟从多个 API 并行获取数据并合并结果
-3. 使用 spawn 创建一个后台监控任务，定期检查系统状态
+1. Create two concurrent tasks, one printing odd numbers and one printing even numbers, each printing 5 times
+2. Implement an async function that simulates fetching data from multiple APIs in parallel and merging results
+3. Use spawn to create a background monitoring task that periodically checks system status
 
 <details>
-<summary>参考答案</summary>
+<summary>Reference Answers</summary>
 
 ```catlang
-; 练习 1：奇偶打印
+; Exercise 1: Odd/Even printing
 async fn print_odd() [
     for (new i = 1, i < 10, i += 2) [
-        print("奇数：{i}")
+        print("Odd: {i}")
         await sleep(50)
     ]
 ]
 
 async fn print_even() [
     for (new i = 2, i <= 10, i += 2) [
-        print("偶数：{i}")
+        print("Even: {i}")
         await sleep(50)
     ]
 ]
@@ -540,62 +540,62 @@ async fn print_even() [
 [
     new h1 = spawn print_odd()
     new h2 = spawn print_even()
-    
+
     await h1
     await h2
     return 0
 ]
 
-; 练习 2：并行 API 调用
+; Exercise 2: Parallel API calls
 async fn fetch_api1() -> str [
     await sleep(100)
-    return "数据 1"
+    return "Data 1"
 ]
 
 async fn fetch_api2() -> str [
     await sleep(150)
-    return "数据 2"
+    return "Data 2"
 ]
 
 async fn fetch_api3() -> str [
     await sleep(80)
-    return "数据 3"
+    return "Data 3"
 ]
 
 async fn merge_data() -> str [
     new h1 = spawn fetch_api1()
     new h2 = spawn fetch_api2()
     new h3 = spawn fetch_api3()
-    
+
     new d1 = await h1
     new d2 = await h2
     new d3 = await h3
-    
+
     return "{d1} + {d2} + {d3}"
 ]
 
-; 练习 3：后台监控
+; Exercise 3: Background monitoring
 async fn monitor_system() [
     for (new i = 0, i < 5, i += 1) [
         await sleep(1000)
-        print("系统检查 {i}: CPU 正常，内存正常")
+        print("System check {i}: CPU normal, Memory normal")
     ]
 ]
 
 [
     new monitor_handle = spawn monitor_system()
-    
-    ; 主程序继续其他工作
+
+    ; Main program continues other work
     await sleep(3000)
-    print("主程序工作完成")
-    
+    print("Main program work complete")
+
     await monitor_handle
     return 0
 ]
 ```
 </details>
 
-## 下一步
+## Next Steps
 
-- [第 09 章：模块与导入](09_modules_imports.md) - 第三方库导入
-- [第 10 章：最佳实践](10_best_practices.md) - 代码风格、性能提示
+- [Chapter 09: Modules & Imports](09_modules_imports.md) - Third-party library imports
+- [Chapter 10: Best Practices](10_best_practices.md) - Code style, performance tips

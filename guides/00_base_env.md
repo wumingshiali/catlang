@@ -1,22 +1,22 @@
-# 第 00 章：环境配置
+# Chapter 00: Environment Setup
 
-本章介绍如何配置 CatLang 开发环境：下载 Zig 和编译/下载 CatLang 编译器。
+This chapter introduces how to set up the CatLang development environment: download Zig and compile/download the CatLang compiler.
 
-## 0.1 下载 Zig
+## 0.1 Download Zig
 
-CatLang 使用 Zig 作为后端进行编译，因此需要先安装 Zig。
+CatLang uses Zig as its backend for compilation, so Zig must be installed first.
 
 ### Windows
 
-1. 访问 Zig 官网：https://ziglang.org/download/
-2. 下载适用于 Windows 的压缩包（如 `zig-windows-x86_64-0.11.0.zip`）
-3. 解压到任意目录，例如 `C:\zig`
-4. 将 Zig 添加到 PATH 环境变量：
-   - 右键"此电脑" → "属性" → "高级系统设置"
-   - 点击"环境变量"
-   - 在"系统变量"中找到 `Path`，点击"编辑"
-   - 添加 Zig 的 bin 目录路径（如 `C:\zig`）
-5. 打开新的命令提示符，验证安装：
+1. Visit the Zig official website: https://ziglang.org/download/
+2. Download the package for Windows (e.g., `zig-windows-x86_64-0.11.0.zip`)
+3. Extract to any directory, e.g., `C:\zig`
+4. Add Zig to the PATH environment variable:
+   - Right-click "This PC" → "Properties" → "Advanced System Settings"
+   - Click "Environment Variables"
+   - Find `Path` in "System variables" and click "Edit"
+   - Add the Zig bin directory path (e.g., `C:\zig`)
+5. Open a new command prompt and verify the installation:
 
 ```bash
 zig version
@@ -24,13 +24,13 @@ zig version
 
 ### macOS
 
-使用 Homebrew 安装：
+Install using Homebrew:
 
 ```bash
 brew install zig
 ```
 
-验证安装：
+Verify the installation:
 
 ```bash
 zig version
@@ -38,32 +38,32 @@ zig version
 
 ### Linux
 
-使用包管理器或下载预编译版本：
+Use package manager or download pre-built version:
 
 ```bash
 # Ubuntu/Debian
 sudo apt install zig
 
-# 或者下载预编译版本
+# Or download pre-built version
 wget https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz
 tar -xf zig-linux-x86_64-0.11.0.tar.xz
 cd zig-linux-x86_64-0.11.0
 sudo cp zig /usr/local/bin/
 ```
 
-验证安装：
+Verify the installation:
 
 ```bash
 zig version
 ```
 
-## 0.2 编译 CatLang 编译器
+## 0.2 Compile the CatLang Compiler
 
-CatLang 编译器使用 Rust 编写，需要 Rust 工具链来编译。
+The CatLang compiler is written in Rust and requires the Rust toolchain to compile.
 
-### 安装 Rust
+### Install Rust
 
-访问 https://rustup.rs/ 下载并安装 Rust：
+Visit https://rustup.rs/ to download and install Rust:
 
 ```bash
 # Windows (PowerShell)
@@ -73,38 +73,38 @@ winget install Rustlang.Rustup
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-### 编译 CatLang
+### Compile CatLang
 
-1. 克隆或下载 CatLang 项目
+1. Clone or download the CatLang project
 
 ```bash
 git clone https://github.com/your-org/catlang.git
 cd catlang
 ```
 
-2. 使用 Cargo 编译
+2. Compile using Cargo
 
 ```bash
-# 开发版本
+# Development version
 cargo build
 
-# 发布版本（优化）
+# Release version (optimized)
 cargo build --release
 ```
 
-3. 编译产物位置
+3. Build output location
 
 ```
 # Windows
-target\debug\catlang.exe      # 开发版本
-target\release\catlang.exe    # 发布版本
+target\debug\catlang.exe      # Development version
+target\release\catlang.exe    # Release version
 
 # macOS/Linux
-target/debug/catlang          # 开发版本
-target/release/catlang        # 发布版本
+target/debug/catlang          # Development version
+target/release/catlang        # Release version
 ```
 
-4. 验证编译器
+4. Verify the compiler
 
 ```bash
 # Windows
@@ -114,32 +114,32 @@ target\release\catlang.exe --version
 ./target/release/catlang --version
 ```
 
-## 0.3 下载预编译版本
+## 0.3 Download Pre-built Version
 
-如果不想自己编译，可以下载预编译的 CatLang 编译器。
+If you don't want to compile it yourself, you can download the pre-built CatLang compiler.
 
-### 发布版本（暂时不可用）
+### Release Version (Not Available Yet)
 
-访问项目的 Releases 页面下载对应平台的预编译版本：
+Visit the project's Releases page to download the pre-built version for your platform:
 
 ```
 N/A
 ```
 
-### 解压和使用
+### Extract and Use
 
 ```bash
-# Windows - 解压后直接运行 catlang.exe
-# macOS/Linux - 可能需要添加执行权限
+# Windows - Extract and run catlang.exe directly
+# macOS/Linux - May need to add execute permission
 chmod +x catlang
 ```
 
-## 0.4 配置编辑器（可选）
+## 0.4 Configure Editor (Optional)
 
-### VS Code 配置 (暂时不可用)
+### VS Code Configuration (Not Available Yet)
 
-1. 安装 CatLang 语言支持插件（如果有）
-2. 创建 `.vscode/settings.json`：
+1. Install CatLang language support extension (if available)
+2. Create `.vscode/settings.json`:
 
 ```json
 {
@@ -150,14 +150,14 @@ chmod +x catlang
 }
 ```
 
-3. 创建任务配置文件 `.vscode/tasks.json`：(此内容可用)
+3. Create task configuration file `.vscode/tasks.json`: (This is available)
 
 ```json
 {
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "运行 CatLang",
+            "label": "Run CatLang",
             "type": "shell",
             "command": "./target/release/catlang.exe ${file}",
             "group": "build",
@@ -167,18 +167,18 @@ chmod +x catlang
 }
 ```
 
-## 0.5 验证环境
+## 0.5 Verify Environment
 
-创建测试文件 `test.cat`：
+Create test file `test.cat`:
 
 ```cat
 [
-    print("环境配置成功！")
+    print("Environment setup successful!")
     return 0
 ]
 ```
 
-运行测试：
+Run the test:
 
 ```bash
 # Windows
@@ -188,39 +188,39 @@ target\release\catlang.exe test.cat
 ./target/release/catlang test.cat
 ```
 
-如果输出 `环境配置成功！`，则环境配置完成。
+If it outputs `Environment setup successful!`, the environment is configured.
 
-## 0.6 常见问题
+## 0.6 Common Issues
 
-### Zig 找不到
+### Zig Not Found
 
-确保 Zig 已正确添加到 PATH 环境变量，并重启终端。
+Ensure Zig is correctly added to the PATH environment variable and restart the terminal.
 
-### Cargo 编译失败
+### Cargo Compilation Failed
 
-检查 Rust 版本：
+Check Rust version:
 
 ```bash
 rustc --version
 cargo --version
 ```
 
-如需更新 Rust：
+To update Rust:
 
 ```bash
 rustup update
 ```
 
-### 权限问题（macOS/Linux）
+### Permission Issues (macOS/Linux)
 
-如果遇到权限错误：
+If you encounter permission errors:
 
 ```bash
 chmod +x target/release/catlang
 ```
 
-## 下一步
+## Next Steps
 
-环境配置完成后，继续学习：
+After completing the environment setup, continue learning:
 
-- [第 01 章：快速开始](01_getting_started.md) - 编写第一个 CatLang 程序
+- [Chapter 01: Quick Start](01_getting_started.md) - Write your first CatLang program
