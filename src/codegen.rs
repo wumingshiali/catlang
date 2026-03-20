@@ -29,6 +29,7 @@ pub struct ZigCodeGen {
     needs_read_input_with_prompt: bool,
     needs_read_input_to: bool,
     needs_timer: bool,
+    needs_getweb: bool,
 }
 
 impl ZigCodeGen {
@@ -43,6 +44,7 @@ impl ZigCodeGen {
             needs_read_input_with_prompt: false,
             needs_read_input_to: false,
             needs_timer: false,
+            needs_getweb: false,
         }
     }
 
@@ -248,6 +250,7 @@ impl ZigCodeGen {
                                 self.needs_read_input_to = true;
                             }
                         }
+                        "getweb" => self.needs_getweb = true,
                         _ => {}
                     }
                 }
@@ -443,6 +446,70 @@ impl ZigCodeGen {
             self.writeln("}");
             self.indent_level -= 1;
             self.writeln("};");
+            self.writeln("");
+        }
+
+        // Generate getweb helper if needed
+        if self.needs_getweb {
+            self.writeln("// getweb - HTTP GET request to fetch web content");
+            self.writeln("fn getweb(url: []const u8, protocol: []const u8) []const u8 {");
+            self.indent_level += 1;
+            self.writeln("var gpa = std.heap.GeneralPurposeAllocator(.{}){};");
+            self.indent_level += 1;
+            self.writeln("defer _ = gpa.deinit();");
+            self.indent_level -= 1;
+            self.writeln("const allocator = gpa.allocator();");
+            self.writeln("");
+            self.writeln("var client = std.http.Client{ .allocator = allocator };");
+            self.writeln("defer client.deinit();");
+            self.writeln("");
+            self.writeln("var header_buf: [4096]u8 = undefined;");
+            self.writeln("var body_buf: [65536]u8 = undefined;");
+            self.writeln("");
+            self.writeln("var req = client.open(.GET, url, .{");
+            self.indent_level += 1;
+            self.writeln(".server_header_buffer = &header_buf,");
+            self.writeln(".extra_headers = &.{},");
+            self.indent_level -= 1;
+            self.writeln("}) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP request failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("defer req.deinit();");
+            self.writeln("");
+            self.writeln("req.send() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP send failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const status = req.wait() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP wait failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("if (status != 200) {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP status: {}\\n\", .{status});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const bytes_read = req.readAllAll(&body_buf) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP read failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("return body_buf[0..bytes_read];");
+            self.indent_level -= 1;
+            self.writeln("}");
             self.writeln("");
         }
     }
@@ -1114,6 +1181,7 @@ impl ZigCodeGen {
                     "input" => "input".to_string(),
                     "len" => "@as(usize, 0)".to_string(),
                     "sleep" => "std.time.sleep".to_string(),
+                    "getweb" => "getweb".to_string(),
                     _ => func_str,
                 };
 
@@ -1196,6 +1264,23 @@ impl ZigCodeGen {
                         Ok(format!("{}(@as(u64, {}) * 1_000_000)", zig_func, arg))
                     } else {
                         Ok(format!("{}(0)", zig_func))
+                    }
+                } else if zig_func == "getweb" {
+                    // getweb(url[, protocol]) - HTTP GET request
+                    // Supports:
+                    // 1. getweb(url) - default protocol "https"
+                    // 2. getweb(url, protocol) - specified protocol
+                    if args_str.is_empty() {
+                        return Err(CodeGenError { message: "getweb() requires at least a URL argument".to_string() });
+                    } else if args_str.len() == 1 {
+                        // Single argument - URL with default protocol (https)
+                        let url = &args_str[0];
+                        Ok(format!("getweb({}, \"https\")", url))
+                    } else {
+                        // Two arguments - URL and protocol
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        Ok(format!("getweb({}, {})", url, protocol))
                     }
                 } else {
                     Ok(format!("{}({})", zig_func, args_str.join(", ")))
