@@ -5,6 +5,9 @@
 **/*.rmeta
 Cargo.lock
 
+# GitHub Actions (do not ignore)
+!.github/
+
 # Compiled CatLang files
 **/*.catc.exe
 **/*.zig

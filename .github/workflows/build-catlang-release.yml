@@ -1,0 +1,38 @@
+name: Build CatLang (Release)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (optional)'
+        required: false
+        default: 'latest'
+
+jobs:
+  build:
+    name: Release Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Build (Release with max optimizations)
+        run: cargo build --release --verbose
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: catc-release-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            target/release/catc
+            target/release/catc.exe
+          if-no-files-found: ignore
+          retention-days: 30

@@ -1,0 +1,36 @@
+name: Build CatLang (Dev)
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Build (Debug)
+        run: cargo build --verbose
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: catc-dev-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            target/debug/catc
+            target/debug/catc.exe
+          if-no-files-found: ignore
+          retention-days: 7
