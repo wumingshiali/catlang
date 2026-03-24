@@ -141,9 +141,9 @@ new a: i32 = 100
 new b: f64 = 2.718
 
 ; 特殊类型
-new big: ia          ; 任意精度整数 (i128)
-new bigf: fa         ; 任意精度浮点 (f128)
-new timer: timer     ; 高精度计时器
+new big<ia>          ; 任意精度整数 (i128)
+new bigf<fa>         ; 任意精度浮点 (f128)
+new timer<timer>     ; 高精度计时器
 ```
 
 ### 2. 控制流

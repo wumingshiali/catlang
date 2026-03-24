@@ -30,6 +30,11 @@ pub struct ZigCodeGen {
     needs_read_input_to: bool,
     needs_timer: bool,
     needs_getweb: bool,
+    needs_postweb: bool,
+    needs_putweb: bool,
+    needs_deleteweb: bool,
+    needs_patchweb: bool,
+    needs_anyweb: bool,
 }
 
 impl ZigCodeGen {
@@ -45,6 +50,11 @@ impl ZigCodeGen {
             needs_read_input_to: false,
             needs_timer: false,
             needs_getweb: false,
+            needs_postweb: false,
+            needs_putweb: false,
+            needs_deleteweb: false,
+            needs_patchweb: false,
+            needs_anyweb: false,
         }
     }
 
@@ -251,6 +261,11 @@ impl ZigCodeGen {
                             }
                         }
                         "getweb" => self.needs_getweb = true,
+                        "postweb" => self.needs_postweb = true,
+                        "putweb" => self.needs_putweb = true,
+                        "deleteweb" => self.needs_deleteweb = true,
+                        "patchweb" => self.needs_patchweb = true,
+                        "anyweb" => self.needs_anyweb = true,
                         _ => {}
                     }
                 }
@@ -494,6 +509,365 @@ impl ZigCodeGen {
             self.writeln("}");
             self.writeln("");
             self.writeln("if (status != 200) {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP status: {}\\n\", .{status});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const bytes_read = req.readAllAll(&body_buf) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP read failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("return body_buf[0..bytes_read];");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+        }
+
+        // Generate postweb helper if needed
+        if self.needs_postweb {
+            self.writeln("// postweb - HTTP POST request to send data");
+            self.writeln("fn postweb(url: []const u8, protocol: []const u8, body_data: []const u8) []const u8 {");
+            self.indent_level += 1;
+            self.writeln("var gpa = std.heap.GeneralPurposeAllocator(.{}){};");
+            self.indent_level += 1;
+            self.writeln("defer _ = gpa.deinit();");
+            self.indent_level -= 1;
+            self.writeln("const allocator = gpa.allocator();");
+            self.writeln("");
+            self.writeln("var client = std.http.Client{ .allocator = allocator };");
+            self.writeln("defer client.deinit();");
+            self.writeln("");
+            self.writeln("var header_buf: [4096]u8 = undefined;");
+            self.writeln("var body_buf: [65536]u8 = undefined;");
+            self.writeln("");
+            self.writeln("var req = client.open(.POST, url, .{");
+            self.indent_level += 1;
+            self.writeln(".server_header_buffer = &header_buf,");
+            self.writeln(".extra_headers = &.{},");
+            self.indent_level -= 1;
+            self.writeln("}) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP request failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("defer req.deinit();");
+            self.writeln("");
+            self.writeln("req.setBody(body_data) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP set body failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("req.send() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP send failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const status = req.wait() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP wait failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("if (status != 200 and status != 201) {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP status: {}\\n\", .{status});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const bytes_read = req.readAllAll(&body_buf) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP read failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("return body_buf[0..bytes_read];");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+        }
+
+        // Generate putweb helper if needed
+        if self.needs_putweb {
+            self.writeln("// putweb - HTTP PUT request to update resource");
+            self.writeln("fn putweb(url: []const u8, protocol: []const u8, body_data: []const u8) []const u8 {");
+            self.indent_level += 1;
+            self.writeln("var gpa = std.heap.GeneralPurposeAllocator(.{}){};");
+            self.indent_level += 1;
+            self.writeln("defer _ = gpa.deinit();");
+            self.indent_level -= 1;
+            self.writeln("const allocator = gpa.allocator();");
+            self.writeln("");
+            self.writeln("var client = std.http.Client{ .allocator = allocator };");
+            self.writeln("defer client.deinit();");
+            self.writeln("");
+            self.writeln("var header_buf: [4096]u8 = undefined;");
+            self.writeln("var body_buf: [65536]u8 = undefined;");
+            self.writeln("");
+            self.writeln("var req = client.open(.PUT, url, .{");
+            self.indent_level += 1;
+            self.writeln(".server_header_buffer = &header_buf,");
+            self.writeln(".extra_headers = &.{},");
+            self.indent_level -= 1;
+            self.writeln("}) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP request failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("defer req.deinit();");
+            self.writeln("");
+            self.writeln("req.setBody(body_data) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP set body failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("req.send() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP send failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const status = req.wait() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP wait failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("if (status != 200 and status != 201) {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP status: {}\\n\", .{status});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const bytes_read = req.readAllAll(&body_buf) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP read failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("return body_buf[0..bytes_read];");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+        }
+
+        // Generate deleteweb helper if needed
+        if self.needs_deleteweb {
+            self.writeln("// deleteweb - HTTP DELETE request to remove resource");
+            self.writeln("fn deleteweb(url: []const u8, protocol: []const u8) []const u8 {");
+            self.indent_level += 1;
+            self.writeln("var gpa = std.heap.GeneralPurposeAllocator(.{}){};");
+            self.indent_level += 1;
+            self.writeln("defer _ = gpa.deinit();");
+            self.indent_level -= 1;
+            self.writeln("const allocator = gpa.allocator();");
+            self.writeln("");
+            self.writeln("var client = std.http.Client{ .allocator = allocator };");
+            self.writeln("defer client.deinit();");
+            self.writeln("");
+            self.writeln("var header_buf: [4096]u8 = undefined;");
+            self.writeln("var body_buf: [65536]u8 = undefined;");
+            self.writeln("");
+            self.writeln("var req = client.open(.DELETE, url, .{");
+            self.indent_level += 1;
+            self.writeln(".server_header_buffer = &header_buf,");
+            self.writeln(".extra_headers = &.{},");
+            self.indent_level -= 1;
+            self.writeln("}) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP request failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("defer req.deinit();");
+            self.writeln("");
+            self.writeln("req.send() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP send failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const status = req.wait() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP wait failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("if (status != 200 and status != 204) {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP status: {}\\n\", .{status});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const bytes_read = req.readAllAll(&body_buf) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP read failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("return body_buf[0..bytes_read];");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+        }
+
+        // Generate patchweb helper if needed
+        if self.needs_patchweb {
+            self.writeln("// patchweb - HTTP PATCH request to partially update resource");
+            self.writeln("fn patchweb(url: []const u8, protocol: []const u8, body_data: []const u8) []const u8 {");
+            self.indent_level += 1;
+            self.writeln("var gpa = std.heap.GeneralPurposeAllocator(.{}){};");
+            self.indent_level += 1;
+            self.writeln("defer _ = gpa.deinit();");
+            self.indent_level -= 1;
+            self.writeln("const allocator = gpa.allocator();");
+            self.writeln("");
+            self.writeln("var client = std.http.Client{ .allocator = allocator };");
+            self.writeln("defer client.deinit();");
+            self.writeln("");
+            self.writeln("var header_buf: [4096]u8 = undefined;");
+            self.writeln("var body_buf: [65536]u8 = undefined;");
+            self.writeln("");
+            self.writeln("var req = client.open(.PATCH, url, .{");
+            self.indent_level += 1;
+            self.writeln(".server_header_buffer = &header_buf,");
+            self.writeln(".extra_headers = &.{},");
+            self.indent_level -= 1;
+            self.writeln("}) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP request failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("defer req.deinit();");
+            self.writeln("");
+            self.writeln("req.setBody(body_data) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP set body failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("req.send() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP send failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const status = req.wait() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP wait failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("if (status != 200 and status != 204) {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP status: {}\\n\", .{status});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const bytes_read = req.readAllAll(&body_buf) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP read failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("return body_buf[0..bytes_read];");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+        }
+
+        // Generate anyweb helper if needed
+        if self.needs_anyweb {
+            self.writeln("// anyweb - HTTP request with custom method");
+            self.writeln("fn anyweb(url: []const u8, protocol: []const u8, method: []const u8, body_data: ?[]const u8) []const u8 {");
+            self.indent_level += 1;
+            self.writeln("var gpa = std.heap.GeneralPurposeAllocator(.{}){};");
+            self.indent_level += 1;
+            self.writeln("defer _ = gpa.deinit();");
+            self.indent_level -= 1;
+            self.writeln("const allocator = gpa.allocator();");
+            self.writeln("");
+            self.writeln("var client = std.http.Client{ .allocator = allocator };");
+            self.writeln("defer client.deinit();");
+            self.writeln("");
+            self.writeln("var header_buf: [4096]u8 = undefined;");
+            self.writeln("var body_buf: [65536]u8 = undefined;");
+            self.writeln("");
+            self.writeln("const http_method = std.http.Method.parse(method) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"Invalid HTTP method: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("var req = client.open(http_method, url, .{");
+            self.indent_level += 1;
+            self.writeln(".server_header_buffer = &header_buf,");
+            self.writeln(".extra_headers = &.{},");
+            self.indent_level -= 1;
+            self.writeln("}) catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP request failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("defer req.deinit();");
+            self.writeln("");
+            self.writeln("if (body_data) |data| {");
+            self.indent_level += 1;
+            self.writeln("req.setBody(data) catch |err| {");
+            self.indent_level += 2;
+            self.writeln("std.debug.print(\"HTTP set body failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 2;
+            self.writeln("}");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("req.send() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP send failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("const status = req.wait() catch |err| {");
+            self.indent_level += 1;
+            self.writeln("std.debug.print(\"HTTP wait failed: {}\\n\", .{err});");
+            self.writeln("return \"\";");
+            self.indent_level -= 1;
+            self.writeln("}");
+            self.writeln("");
+            self.writeln("if (status < 200 or status >= 300) {");
             self.indent_level += 1;
             self.writeln("std.debug.print(\"HTTP status: {}\\n\", .{status});");
             self.writeln("return \"\";");
@@ -1182,6 +1556,11 @@ impl ZigCodeGen {
                     "len" => "@as(usize, 0)".to_string(),
                     "sleep" => "std.time.sleep".to_string(),
                     "getweb" => "getweb".to_string(),
+                    "postweb" => "postweb".to_string(),
+                    "putweb" => "putweb".to_string(),
+                    "deleteweb" => "deleteweb".to_string(),
+                    "patchweb" => "patchweb".to_string(),
+                    "anyweb" => "anyweb".to_string(),
                     _ => func_str,
                 };
 
@@ -1281,6 +1660,127 @@ impl ZigCodeGen {
                         let url = &args_str[0];
                         let protocol = &args_str[1];
                         Ok(format!("getweb({}, {})", url, protocol))
+                    }
+                } else if zig_func == "postweb" {
+                    // postweb(url[, protocol, body]) - HTTP POST request
+                    // Supports:
+                    // 1. postweb(url) - default protocol "https", no body
+                    // 2. postweb(url, protocol) - specified protocol, no body
+                    // 3. postweb(url, protocol, body) - specified protocol and body
+                    if args_str.is_empty() {
+                        return Err(CodeGenError { message: "postweb() requires at least a URL argument".to_string() });
+                    } else if args_str.len() == 1 {
+                        // Single argument - URL with default protocol (https) and empty body
+                        let url = &args_str[0];
+                        Ok(format!("postweb({}, \"https\", \"\")", url))
+                    } else if args_str.len() == 2 {
+                        // Two arguments - URL and protocol, empty body
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        Ok(format!("postweb({}, {}, \"\")", url, protocol))
+                    } else {
+                        // Three arguments - URL, protocol, and body
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        let body = &args_str[2];
+                        Ok(format!("postweb({}, {}, {})", url, protocol, body))
+                    }
+                } else if zig_func == "putweb" {
+                    // putweb(url[, protocol, body]) - HTTP PUT request
+                    // Supports:
+                    // 1. putweb(url) - default protocol "https", no body
+                    // 2. putweb(url, protocol) - specified protocol, no body
+                    // 3. putweb(url, protocol, body) - specified protocol and body
+                    if args_str.is_empty() {
+                        return Err(CodeGenError { message: "putweb() requires at least a URL argument".to_string() });
+                    } else if args_str.len() == 1 {
+                        // Single argument - URL with default protocol (https) and empty body
+                        let url = &args_str[0];
+                        Ok(format!("putweb({}, \"https\", \"\")", url))
+                    } else if args_str.len() == 2 {
+                        // Two arguments - URL and protocol, empty body
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        Ok(format!("putweb({}, {}, \"\")", url, protocol))
+                    } else {
+                        // Three arguments - URL, protocol, and body
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        let body = &args_str[2];
+                        Ok(format!("putweb({}, {}, {})", url, protocol, body))
+                    }
+                } else if zig_func == "deleteweb" {
+                    // deleteweb(url[, protocol]) - HTTP DELETE request
+                    // Supports:
+                    // 1. deleteweb(url) - default protocol "https"
+                    // 2. deleteweb(url, protocol) - specified protocol
+                    if args_str.is_empty() {
+                        return Err(CodeGenError { message: "deleteweb() requires at least a URL argument".to_string() });
+                    } else if args_str.len() == 1 {
+                        // Single argument - URL with default protocol (https)
+                        let url = &args_str[0];
+                        Ok(format!("deleteweb({}, \"https\")", url))
+                    } else {
+                        // Two arguments - URL and protocol
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        Ok(format!("deleteweb({}, {})", url, protocol))
+                    }
+                } else if zig_func == "patchweb" {
+                    // patchweb(url[, protocol, body]) - HTTP PATCH request
+                    // Supports:
+                    // 1. patchweb(url) - default protocol "https", no body
+                    // 2. patchweb(url, protocol) - specified protocol, no body
+                    // 3. patchweb(url, protocol, body) - specified protocol and body
+                    if args_str.is_empty() {
+                        return Err(CodeGenError { message: "patchweb() requires at least a URL argument".to_string() });
+                    } else if args_str.len() == 1 {
+                        // Single argument - URL with default protocol (https) and empty body
+                        let url = &args_str[0];
+                        Ok(format!("patchweb({}, \"https\", \"\")", url))
+                    } else if args_str.len() == 2 {
+                        // Two arguments - URL and protocol, empty body
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        Ok(format!("patchweb({}, {}, \"\")", url, protocol))
+                    } else {
+                        // Three arguments - URL, protocol, and body
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        let body = &args_str[2];
+                        Ok(format!("patchweb({}, {}, {})", url, protocol, body))
+                    }
+                } else if zig_func == "anyweb" {
+                    // anyweb(url[, protocol, method, body]) - HTTP request with custom method
+                    // Supports:
+                    // 1. anyweb(url) - default protocol "https", method "GET", no body
+                    // 2. anyweb(url, protocol) - specified protocol, method "GET", no body
+                    // 3. anyweb(url, protocol, method) - specified protocol and method, no body
+                    // 4. anyweb(url, protocol, method, body) - full parameters
+                    if args_str.is_empty() {
+                        return Err(CodeGenError { message: "anyweb() requires at least a URL argument".to_string() });
+                    } else if args_str.len() == 1 {
+                        // Single argument - URL with default protocol (https), method "GET", no body
+                        let url = &args_str[0];
+                        Ok(format!("anyweb({}, \"https\", \"GET\", null)", url))
+                    } else if args_str.len() == 2 {
+                        // Two arguments - URL and protocol, method "GET", no body
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        Ok(format!("anyweb({}, {}, \"GET\", null)", url, protocol))
+                    } else if args_str.len() == 3 {
+                        // Three arguments - URL, protocol, and method, no body
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        let method = &args_str[2];
+                        Ok(format!("anyweb({}, {}, {}, null)", url, protocol, method))
+                    } else {
+                        // Four arguments - URL, protocol, method, and body
+                        let url = &args_str[0];
+                        let protocol = &args_str[1];
+                        let method = &args_str[2];
+                        let body = &args_str[3];
+                        Ok(format!("anyweb({}, {}, {}, {})", url, protocol, method, body))
                     }
                 } else {
                     Ok(format!("{}({})", zig_func, args_str.join(", ")))

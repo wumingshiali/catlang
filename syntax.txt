@@ -153,10 +153,15 @@ capacity       = int_literal | 'a' ;  /* 数字表示固定容量，'a' 表示�
     nums.sort()                  ; 排序列表
 
 /* A-3. 内置函数 */
-; print(fmt, ...)        - 输出格式化字符串到控制台
-; sleep(ms)              - 暂停指定毫秒数
-; input([prompt])        - 从标准输入读取一行
-; getweb(url[,protocol]) - 发送 HTTPS GET 请求获取网页内容，返回源代码（默认 HTTPS）
+; print(fmt, ...)                 - 输出格式化字符串到控制台
+; sleep(ms)                       - 暂停指定毫秒数
+; input([prompt])                 - 从标准输入读取一行
+; getweb(url[,protocol])          - 发送 HTTPS GET 请求获取网页内容，返回源代码（默认 HTTPS）
+; postweb(url[,protocol,body])    - 发送 HTTP POST 请求，可携带请求体（默认 HTTPS）
+; putweb(url[,protocol,body])     - 发送 HTTP PUT 请求，可携带请求体（默认 HTTPS）
+; deleteweb(url[,protocol])       - 发送 HTTP DELETE 请求（默认 HTTPS）
+; patchweb(url[,protocol,body])   - 发送 HTTP PATCH 请求，可携带请求体（默认 HTTPS）
+; anyweb(url[,protocol,method,body]) - 发送自定义 HTTP 方法的请求（默认 HTTPS, GET 方法）
 
 示例：
     print("Hello, World!")                    ; 输出字符串
@@ -165,6 +170,23 @@ capacity       = int_literal | 'a' ;  /* 数字表示固定容量，'a' 表示�
     new name = input("Enter name: ")          ; 带提示输入
     new html = getweb("https://example.com")  ; 获取网页 (默认 https)
     new data = getweb(url, "http")            ; 指定使用 http 协议
+    
+    ; POST 请求
+    new resp = postweb("https://api.example.com/data")                    ; 无请求体
+    new resp = postweb("https://api.example.com/data", "https", "{\"key\":\"value\"}")  ; 带请求体
+    
+    ; PUT 请求
+    new resp = putweb("https://api.example.com/resource", "https", "{\"id\":1}")  ; 更新资源
+    
+    ; DELETE 请求
+    new resp = deleteweb("https://api.example.com/resource/123")          ; 删除资源
+    
+    ; PATCH 请求
+    new resp = patchweb("https://api.example.com/resource/123", "https", "{\"name\":\"new\"}")  ; 部分更新
+    
+    ; 自定义方法请求
+    new resp = anyweb("https://api.example.com/custom", "https", "OPTIONS")           ; OPTIONS 请求
+    new resp = anyweb("https://api.example.com/data", "https", "POST", "{\"data\":\"test\"}")  ; 带请求体的自定义请求
 
 
 /* B. 第三方导入 (Python 风格) */

@@ -137,13 +137,13 @@ new y = 3.14         ; f64
 new s = "hello"      ; str
 
 ; Explicit types
-new a: i32 = 100
+new a<i32> = 100
 new b: f64 = 2.718
 
 ; Special types
-new big: ia          ; Arbitrary precision integer (i128)
-new bigf: fa         ; Arbitrary precision float (f128)
-new timer: timer     ; High-precision timer
+new big:<ia>          ; Arbitrary precision integer (i128)
+new bigf:<fa>         ; Arbitrary precision float (f128)
+new timer<timer>     ; High-precision timer
 ```
 
 ### 2. Control Flow
