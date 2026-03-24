@@ -8,6 +8,9 @@ Cargo.lock
 # GitHub Actions (do not ignore)
 !.github/
 
+# Icons (do not ignore)
+!icons/
+
 # Compiled CatLang files
 **/*.catc.exe
 **/*.zig
