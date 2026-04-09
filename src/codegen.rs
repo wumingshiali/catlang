@@ -35,6 +35,8 @@ pub struct ZigCodeGen {
     needs_deleteweb: bool,
     needs_patchweb: bool,
     needs_anyweb: bool,
+    // Track if we're in a void function (like main)
+    in_void_function: bool,
 }
 
 impl ZigCodeGen {
@@ -55,6 +57,7 @@ impl ZigCodeGen {
             needs_deleteweb: false,
             needs_patchweb: false,
             needs_anyweb: false,
+            in_void_function: false,
         }
     }
 
@@ -138,12 +141,19 @@ impl ZigCodeGen {
 
             // Store mutated vars for variable declaration
             self.mutated_vars = mutated_vars;
+            
+            // Mark that we're in a void function (main)
+            let prev_in_void = self.in_void_function;
+            self.in_void_function = true;
 
             for block in top_level_statements {
                 for stmt in &block.statements {
                     self.generate_statement(stmt)?;
                 }
             }
+            
+            // Restore the previous state
+            self.in_void_function = prev_in_void;
 
             self.indent_level -= 1;
             self.writeln("}");
@@ -1420,8 +1430,15 @@ impl ZigCodeGen {
 
     fn generate_return(&mut self, return_stmt: &ReturnStmt) -> CodeGenResult<()> {
         if let Some(expr) = &return_stmt.expr {
-            let expr_str = self.generate_expr(expr)?;
-            self.writeln(&format!("return {};", expr_str));
+            // If we're in a void function (like main), ignore the return value
+            if self.in_void_function {
+                // Still generate the expression (in case it has side effects)
+                let _ = self.generate_expr(expr)?;
+                self.writeln("return;");
+            } else {
+                let expr_str = self.generate_expr(expr)?;
+                self.writeln(&format!("return {};", expr_str));
+            }
         } else {
             self.writeln("return;");
         }
@@ -1626,16 +1643,17 @@ impl ZigCodeGen {
                         let first_arg = &args_str[0];
                         // String with format placeholders - need to convert {var} to {}
                         if first_arg.starts_with('"') {
-                            self.convert_print_format(first_arg)
+                            self.convert_print_format(first_arg, &[])
                         } else {
                             // Single non-string argument - direct print
                             Ok(format!("print(\"{{}}\", .{{ {} }})", first_arg))
                         }
                     } else {
                         // Multiple arguments - first is format string, rest are values
+                        // Collect the original expressions for type inference
                         let format_str = &args_str[0];
-                        let values = args_str[1..].join(", ");
-                        Ok(format!("print({}, .{{ {} }})", format_str, values))
+                        let var_exprs: Vec<&Expr> = args.iter().skip(1).collect();
+                        self.convert_print_format_with_exprs(format_str, &var_exprs)
                     }
                 } else if zig_func == "std.time.sleep" {
                     // Convert milliseconds to nanoseconds for Zig
@@ -1876,7 +1894,7 @@ impl ZigCodeGen {
 
     /// Optimized print format conversion - converts CatLang {var} to Zig {}
     /// Note: The input string is already escaped by generate_literal
-    fn convert_print_format(&self, format_str: &str) -> Result<String, CodeGenError> {
+    fn convert_print_format(&self, format_str: &str, var_exprs: &[&Expr]) -> Result<String, CodeGenError> {
         // Pre-allocate with estimated capacity
         let mut result = String::with_capacity(format_str.len());
         let mut vars = Vec::with_capacity(4); // Typical case has few variables
@@ -1885,6 +1903,7 @@ impl ZigCodeGen {
         let content = format_str.trim_start_matches('"').trim_end_matches('"');
 
         let mut i = 0;
+        let mut var_idx = 0;
         let bytes = content.as_bytes();
         while i < bytes.len() {
             if bytes[i] == b'{' {
@@ -1899,8 +1918,15 @@ impl ZigCodeGen {
                 if let Some(end) = content[i..].find('}') {
                     let var_name = &content[i + 1..i + end];
                     if !var_name.is_empty() {
+                        // Determine the appropriate format specifier based on variable type
+                        let fmt_specifier = if var_idx < var_exprs.len() {
+                            self.get_format_specifier_for_expr(var_exprs[var_idx])
+                        } else {
+                            "{}".to_string()
+                        };
                         vars.push(var_name.to_string());
-                        result.push_str("{}");
+                        result.push_str(&fmt_specifier);
+                        var_idx += 1;
                         i += end + 1;
                         continue;
                     }
@@ -1919,6 +1945,121 @@ impl ZigCodeGen {
             // Pre-allocate vars string
             let vars_str = vars.join(", ");
             Ok(format!("print(\"{}\", .{{ {} }})", result, vars_str))
+        }
+    }
+
+    /// Print format conversion with original expressions for type inference
+    fn convert_print_format_with_exprs(&mut self, format_str: &str, var_exprs: &[&Expr]) -> Result<String, CodeGenError> {
+        // Pre-allocate with estimated capacity
+        let mut result = String::with_capacity(format_str.len());
+        let mut actual_vars: Vec<String> = Vec::with_capacity(4);
+
+        // Skip opening and closing quotes
+        let content = format_str.trim_start_matches('"').trim_end_matches('"');
+
+        let mut i = 0;
+        let mut var_idx = 0;
+        let bytes = content.as_bytes();
+        while i < bytes.len() {
+            if bytes[i] == b'{' {
+                // Check for escaped {{
+                if i + 1 < bytes.len() && bytes[i + 1] == b'{' {
+                    result.push('{');
+                    i += 2;
+                    continue;
+                }
+
+                // Find closing }
+                if let Some(end) = content[i..].find('}') {
+                    let var_name = &content[i + 1..i + end];
+                    if !var_name.is_empty() {
+                        // {var} format - determine format specifier from variable type
+                        let fmt_specifier = if var_idx < var_exprs.len() {
+                            self.get_format_specifier_for_expr(var_exprs[var_idx])
+                        } else {
+                            "{}".to_string()
+                        };
+                        // Generate the actual variable expression
+                        if var_idx < var_exprs.len() {
+                            if let Ok(expr_str) = self.generate_expr(var_exprs[var_idx]) {
+                                actual_vars.push(expr_str);
+                            }
+                        }
+                        result.push_str(&fmt_specifier);
+                        var_idx += 1;
+                        i += end + 1;
+                        continue;
+                    } else if end == 1 {
+                        // {} format - use next variable expression
+                        let fmt_specifier = if var_idx < var_exprs.len() {
+                            self.get_format_specifier_for_expr(var_exprs[var_idx])
+                        } else {
+                            "{}".to_string()
+                        };
+                        // Generate the actual variable expression
+                        if var_idx < var_exprs.len() {
+                            if let Ok(expr_str) = self.generate_expr(var_exprs[var_idx]) {
+                                actual_vars.push(expr_str);
+                            }
+                        }
+                        result.push_str(&fmt_specifier);
+                        var_idx += 1;
+                        i += end + 1;
+                        continue;
+                    }
+                }
+            }
+
+            if i < bytes.len() {
+                result.push(bytes[i] as char);
+                i += 1;
+            }
+        }
+
+        if actual_vars.is_empty() {
+            Ok(format!("print(\"{}\", .{{}})", result))
+        } else {
+            let vars_str = actual_vars.join(", ");
+            Ok(format!("print(\"{}\", .{{ {} }})", result, vars_str))
+        }
+    }
+
+    /// Get the appropriate Zig format specifier based on expression type
+    fn get_format_specifier_for_expr(&self, expr: &Expr) -> String {
+        match &expr.kind {
+            ExprKind::Identifier(_name) => {
+                // Check if this is a known string variable
+                // For now, use {} as default (works for most types except slices)
+                // String types need {s}
+                "{}".to_string()
+            }
+            ExprKind::Literal(lit) => {
+                match lit {
+                    Literal::String(_) | Literal::InterpolatedString(_) => "{s}".to_string(),
+                    Literal::Int(_) => "{}".to_string(),
+                    Literal::Float(_) => "{}".to_string(),
+                    Literal::Bool(_) => "{}".to_string(),
+                }
+            }
+            ExprKind::Call(func, _) => {
+                // Check if this is a function that returns a string
+                if let ExprKind::Identifier(func_name) = &func.kind {
+                    match func_name.as_str() {
+                        "input" | "readInput" | "readInputWithPrompt" | "readInputTo" |
+                        "getweb" | "postweb" | "putweb" | "deleteweb" | "patchweb" | "anyweb" => {
+                            "{s}".to_string()
+                        }
+                        _ => "{}".to_string(),
+                    }
+                } else {
+                    "{}".to_string()
+                }
+            }
+            ExprKind::FieldAccess(_, _) => {
+                // Field access might return strings, use {} for safety
+                "{}".to_string()
+            }
+            _ => "{}".to_string(),
         }
     }
 }
