@@ -14,6 +14,8 @@ use std::collections::HashMap;
 pub struct Optimizer {
     /// Constants known at compile time
     constants: HashMap<String, Literal>,
+    /// Track which variables are mutable (can be reassigned)
+    mutable_vars: std::collections::HashSet<String>,
     /// Optimization level (0-3)
     opt_level: u8,
 }
@@ -23,6 +25,7 @@ impl Optimizer {
     pub fn new(opt_level: u8) -> Self {
         Optimizer {
             constants: HashMap::with_capacity(32), // Pre-allocate for typical use
+            mutable_vars: std::collections::HashSet::with_capacity(32),
             opt_level: opt_level.min(3),
         }
     }
@@ -68,10 +71,13 @@ impl Optimizer {
                     if let Some(init) = &mut var_decl.init {
                         self.optimize_expr(init);
 
-                        // Try to fold constants
+                        // Try to fold constants - only for immutable variables
                         if let ExprKind::Literal(lit) = &init.kind {
                             if var_decl.var_type.is_numeric() {
-                                self.constants.insert(var_decl.name.clone(), lit.clone());
+                                // Only add to constants if not already marked as mutable
+                                if !self.mutable_vars.contains(&var_decl.name) {
+                                    self.constants.insert(var_decl.name.clone(), lit.clone());
+                                }
                             }
                         }
                     }
@@ -80,8 +86,9 @@ impl Optimizer {
                 Stmt::Assignment(mut assignment) => {
                     self.optimize_expr(&mut assignment.value);
 
-                    // Invalidate constant if reassigned
+                    // Mark variable as mutable and invalidate constant if reassigned
                     if let AssignmentTarget::Identifier(name) = &assignment.target {
+                        self.mutable_vars.insert(name.clone());
                         self.constants.remove(name);
                     }
 
@@ -94,12 +101,21 @@ impl Optimizer {
                     if let ExprKind::Literal(Literal::Bool(cond)) = &if_stmt.condition.kind {
                         if *cond {
                             // Condition is always true - keep only if branch
+                            let saved_constants = self.constants.clone();
+                            let saved_mutable = self.mutable_vars.clone();
+
                             self.optimize_block(&mut if_stmt.then_block);
                             for s in if_stmt.then_block.statements.drain(..) {
                                 new_statements.push(s);
                             }
+
+                            self.constants = saved_constants;
+                            self.mutable_vars = saved_mutable;
                         } else if let Some(else_branch) = if_stmt.else_branch {
                             // Condition is always false - keep only else branch
+                            let saved_constants = self.constants.clone();
+                            let saved_mutable = self.mutable_vars.clone();
+
                             match else_branch {
                                 ElseBranch::Block(mut block) => {
                                     self.optimize_block(&mut block);
@@ -111,9 +127,15 @@ impl Optimizer {
                                     new_statements.push(Stmt::If(*if_stmt_inner));
                                 }
                             }
+
+                            self.constants = saved_constants;
+                            self.mutable_vars = saved_mutable;
                         }
                         // If false and no else, skip entirely
                     } else {
+                        let saved_constants = self.constants.clone();
+                        let saved_mutable = self.mutable_vars.clone();
+
                         self.optimize_block(&mut if_stmt.then_block);
                         if let Some(else_branch) = &mut if_stmt.else_branch {
                             match else_branch {
@@ -126,11 +148,30 @@ impl Optimizer {
                             }
                         }
                         new_statements.push(Stmt::If(if_stmt));
+
+                        self.constants = saved_constants;
+                        self.mutable_vars = saved_mutable;
                     }
                 }
                 Stmt::While(mut while_stmt) => {
                     self.optimize_expr(&mut while_stmt.condition);
+
+                    // Check for always-true condition (potential infinite loop)
+                    if let ExprKind::Literal(Literal::Bool(true)) = &while_stmt.condition.kind {
+                        // This is a potential infinite loop - keep it but could warn
+                        // For now, we just optimize the body normally
+                    }
+
+                    // Save constants before optimizing body
+                    let saved_constants = self.constants.clone();
+                    let saved_mutable = self.mutable_vars.clone();
+
                     self.optimize_block(&mut while_stmt.body);
+
+                    // Restore constants after optimizing body
+                    self.constants = saved_constants;
+                    self.mutable_vars = saved_mutable;
+
                     new_statements.push(Stmt::While(while_stmt));
                 }
                 Stmt::For(mut for_stmt) => {
@@ -139,7 +180,17 @@ impl Optimizer {
                     }
                     self.optimize_expr(&mut for_stmt.condition);
                     self.optimize_expr(&mut for_stmt.update.value);
+
+                    // Save constants before optimizing body
+                    let saved_constants = self.constants.clone();
+                    let saved_mutable = self.mutable_vars.clone();
+
                     self.optimize_block(&mut for_stmt.body);
+
+                    // Restore constants after optimizing body
+                    self.constants = saved_constants;
+                    self.mutable_vars = saved_mutable;
+
                     new_statements.push(Stmt::For(for_stmt));
                 }
                 Stmt::Return(mut ret_stmt) => {
@@ -156,17 +207,66 @@ impl Optimizer {
                     }
                 }
                 Stmt::Block(mut block) => {
+                    // Save current constants and mutable vars
+                    let saved_constants = self.constants.clone();
+                    let saved_mutable = self.mutable_vars.clone();
+
                     self.optimize_block(&mut block);
+
+                    // Restore constants and mutable vars
+                    self.constants = saved_constants;
+                    self.mutable_vars = saved_mutable;
+
                     new_statements.push(Stmt::Block(block));
                 }
                 // Pass through other statements
                 Stmt::CopyStmt(_)
                 | Stmt::Switch(_)
-                | Stmt::Try(_)
                 | Stmt::Throw(_)
-                | Stmt::AsyncStmt(_)
-                | Stmt::UnsafeBlock(_) => {
+                | Stmt::AsyncStmt(_) => {
                     new_statements.push(stmt);
+                }
+                Stmt::Try(mut try_stmt) => {
+                    // Save constants before optimizing try block
+                    let saved_constants = self.constants.clone();
+                    let saved_mutable = self.mutable_vars.clone();
+
+                    self.optimize_block(&mut try_stmt.try_block);
+
+                    // Restore constants after try block
+                    self.constants = saved_constants;
+                    self.mutable_vars = saved_mutable;
+
+                    // Optimize catch clauses with their own scopes
+                    let mut catch_clauses = Vec::new();
+                    for catch_clause in try_stmt.catch_clauses {
+                        let saved_constants = self.constants.clone();
+                        let saved_mutable = self.mutable_vars.clone();
+
+                        let mut clause = catch_clause;
+                        self.optimize_block(&mut clause.body);
+
+                        self.constants = saved_constants;
+                        self.mutable_vars = saved_mutable;
+
+                        catch_clauses.push(clause);
+                    }
+                    try_stmt.catch_clauses = catch_clauses;
+
+                    new_statements.push(Stmt::Try(try_stmt));
+                }
+                Stmt::UnsafeBlock(mut unsafe_block) => {
+                    // Save constants before optimizing unsafe block
+                    let saved_constants = self.constants.clone();
+                    let saved_mutable = self.mutable_vars.clone();
+
+                    self.optimize_block(&mut unsafe_block.body);
+
+                    // Restore constants after unsafe block
+                    self.constants = saved_constants;
+                    self.mutable_vars = saved_mutable;
+
+                    new_statements.push(Stmt::UnsafeBlock(unsafe_block));
                 }
             }
         }
@@ -185,10 +285,14 @@ impl Optimizer {
         }
 
         // Pass 3: Constant propagation (opt level 1+)
+        // Only propagate constants for immutable variables
         if self.opt_level >= 1 {
             if let ExprKind::Identifier(name) = &expr.kind {
-                if let Some(lit) = self.constants.get(name) {
-                    expr.kind = ExprKind::Literal(lit.clone());
+                // Only replace with constant if variable is not mutable
+                if !self.mutable_vars.contains(name) {
+                    if let Some(lit) = self.constants.get(name) {
+                        expr.kind = ExprKind::Literal(lit.clone());
+                    }
                 }
             }
         }
@@ -217,8 +321,9 @@ impl Optimizer {
             }
             ExprKind::Call(ref mut func, ref mut args) => {
                 self.optimize_expr(func);
+                // Optimize arguments without constant propagation
                 for arg in args {
-                    self.optimize_expr(arg);
+                    self.optimize_expr_without_const_prop(arg);
                 }
             }
             ExprKind::Block(ref mut block) => {
@@ -249,6 +354,30 @@ impl Optimizer {
                 self.optimize_expr(inner);
             }
             _ => {}
+        }
+    }
+
+    /// Optimize expression without constant propagation
+    fn optimize_expr_without_const_prop(&mut self, expr: &mut Expr) {
+        // Pass 1: Recursively optimize child expressions
+        self.optimize_children(expr);
+
+        // Pass 2: Apply local optimizations
+        if self.opt_level >= 2 {
+            self.apply_local_optimizations(expr);
+        }
+
+        // Skip constant propagation here
+
+        // Pass 4: Inline built-in functions (opt level 3)
+        if self.opt_level >= 3 {
+            if let ExprKind::Call(func, args) = &expr.kind {
+                if let ExprKind::Identifier(name) = &func.kind {
+                    if let Some(result) = self.try_inline_builtin(name, args) {
+                        expr.kind = result;
+                    }
+                }
+            }
         }
     }
 
@@ -475,6 +604,7 @@ impl Optimizer {
     /// Clear constants (call when scope changes)
     pub fn clear_constants(&mut self) {
         self.constants.clear();
+        self.mutable_vars.clear();
     }
 }
 

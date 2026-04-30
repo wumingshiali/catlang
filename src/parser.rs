@@ -320,11 +320,12 @@ impl Parser {
     }
 
     fn parse_struct_field(&mut self) -> ParseResult<StructField> {
+        let name_span = self.peek().span;
         let name = self.parse_identifier()?;
         self.expect(&TokenKind::Colon, "Expected ':' after field name")?;
         let field_type = self.parse_type_expr()?;
-        
-        let span = Span::new(name.len(), name.len());
+
+        let span = Span::new(name_span.start, self.peek().span.end);
         Ok(StructField { name, field_type, span })
     }
 

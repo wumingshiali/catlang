@@ -481,7 +481,10 @@ impl<'a> Lexer<'a> {
 
         // Check for float
         if self.peek_char() == Some('.') {
-            if let Some(next) = self.chars.clone().nth(1) {
+            // Check if next character is a digit without cloning
+            let mut temp_chars = self.chars.clone();
+            temp_chars.next(); // skip '.'
+            if let Some(next) = temp_chars.next() {
                 if next.is_ascii_digit() {
                     is_float = true;
                     value.push('.');
