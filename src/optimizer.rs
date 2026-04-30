@@ -276,17 +276,22 @@ impl Optimizer {
 
     /// Optimize an expression - uses a two-pass approach to avoid borrow conflicts
     pub fn optimize_expr(&mut self, expr: &mut Expr) {
+        self.optimize_expr_with_options(expr, true, true);
+    }
+
+    /// Optimize expression with options
+    fn optimize_expr_with_options(&mut self, expr: &mut Expr, allow_const_prop: bool, allow_const_fold: bool) {
         // Pass 1: Recursively optimize child expressions
-        self.optimize_children(expr);
+        self.optimize_children_with_options(expr, allow_const_prop, allow_const_fold);
 
         // Pass 2: Apply local optimizations
-        if self.opt_level >= 2 {
+        if self.opt_level >= 2 && allow_const_fold {
             self.apply_local_optimizations(expr);
         }
 
         // Pass 3: Constant propagation (opt level 1+)
         // Only propagate constants for immutable variables
-        if self.opt_level >= 1 {
+        if self.opt_level >= 1 && allow_const_prop {
             if let ExprKind::Identifier(name) = &expr.kind {
                 // Only replace with constant if variable is not mutable
                 if !self.mutable_vars.contains(name) {
