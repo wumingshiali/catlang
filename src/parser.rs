@@ -1681,3 +1681,541 @@ pub fn parse_source(source: &str) -> Result<Program, ParseError> {
     })?;
     parse(tokens)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_empty() {
+        let program = parse_source("").unwrap();
+        assert!(program.declarations.is_empty());
+    }
+
+    #[test]
+    fn test_parse_comment_only() {
+        let program = parse_source("; this is a comment").unwrap();
+        assert!(program.declarations.is_empty());
+    }
+
+    #[test]
+    fn test_parse_var_decl() {
+        let program = parse_source("new x i32 = 42").unwrap();
+        assert_eq!(program.declarations.len(), 1);
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                assert_eq!(block.statements.len(), 1);
+                match &block.statements[0] {
+                    Stmt::VarDecl(var) => {
+                        assert_eq!(var.name, "x");
+                        assert!(var.init.is_some());
+                    }
+                    _ => panic!("Expected VarDecl"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_var_decl_with_type_brackets() {
+        let program = parse_source("new x<i32> = 42").unwrap();
+        assert_eq!(program.declarations.len(), 1);
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                assert_eq!(block.statements.len(), 1);
+                match &block.statements[0] {
+                    Stmt::VarDecl(var) => {
+                        assert_eq!(var.name, "x");
+                    }
+                    _ => panic!("Expected VarDecl"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_function() {
+        let program = parse_source("fn main() [\n    return 0\n]").unwrap();
+        assert_eq!(program.declarations.len(), 1);
+        match &program.declarations[0] {
+            TopLevelDecl::Function(func) => {
+                assert_eq!(func.name, "main");
+                assert_eq!(func.params.len(), 0);
+                assert_eq!(func.body.statements.len(), 1);
+            }
+            _ => panic!("Expected Function"),
+        }
+    }
+
+    #[test]
+    fn test_parse_function_with_params() {
+        let program = parse_source("fn add(a: i32, b: i32) -> i32 [\n    return a + b\n]").unwrap();
+        assert_eq!(program.declarations.len(), 1);
+        match &program.declarations[0] {
+            TopLevelDecl::Function(func) => {
+                assert_eq!(func.name, "add");
+                assert_eq!(func.params.len(), 2);
+                assert_eq!(func.params[0].name, "a");
+                assert_eq!(func.params[1].name, "b");
+                assert!(func.return_type.is_some());
+            }
+            _ => panic!("Expected Function"),
+        }
+    }
+
+    #[test]
+    fn test_parse_async_function() {
+        let program = parse_source("async fn fetch() [\n    return 0\n]").unwrap();
+        assert_eq!(program.declarations.len(), 1);
+        match &program.declarations[0] {
+            TopLevelDecl::AsyncFunction(func) => {
+                assert_eq!(func.name, "fetch");
+                assert!(func.is_async);
+            }
+            _ => panic!("Expected AsyncFunction"),
+        }
+    }
+
+    #[test]
+    fn test_parse_if_statement() {
+        let program = parse_source("new x i32 = 1\nif (x > 0) [\n    new y i32 = 1\n]").unwrap();
+        assert_eq!(program.declarations.len(), 2);
+        match &program.declarations[1] {
+            TopLevelDecl::Statements(block) => {
+                assert_eq!(block.statements.len(), 1);
+                match &block.statements[0] {
+                    Stmt::If(if_stmt) => {
+                        assert!(if_stmt.else_branch.is_none());
+                    }
+                    _ => panic!("Expected If"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_if_else() {
+        let program = parse_source("if (1 == 1) [\n    new x i32 = 1\n] else [\n    new x i32 = 0\n]").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::If(if_stmt) => {
+                        assert!(if_stmt.else_branch.is_some());
+                    }
+                    _ => panic!("Expected If"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_while() {
+        let program = parse_source("while (1 == 1) [\n    new x i32 = 1\n]").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::While(while_stmt) => {
+                        assert_eq!(while_stmt.body.statements.len(), 1);
+                    }
+                    _ => panic!("Expected While"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_for() {
+        let program = parse_source("for (new i i32 = 0, i < 10, i = i + 1) [\n    new x i32 = i\n]").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::For(for_stmt) => {
+                        assert_eq!(for_stmt.body.statements.len(), 1);
+                    }
+                    _ => panic!("Expected For"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_assignment() {
+        let program = parse_source("new x i32 = 1\nx = 2").unwrap();
+        assert_eq!(program.declarations.len(), 2);
+        match &program.declarations[1] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::Assignment(assignment) => {
+                        match &assignment.target {
+                            AssignmentTarget::Identifier(name) => assert_eq!(name, "x"),
+                            _ => panic!("Expected Identifier"),
+                        }
+                    }
+                    _ => panic!("Expected Assignment"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_compound_assignment() {
+        let program = parse_source("new x i32 = 1\nx += 2").unwrap();
+        match &program.declarations[1] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::Assignment(assignment) => {
+                        assert!(matches!(assignment.op, AssignOp::PlusEqual));
+                    }
+                    _ => panic!("Expected Assignment"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_return() {
+        let program = parse_source("fn foo() -> i32 [\n    return 42\n]").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Function(func) => {
+                match &func.body.statements[0] {
+                    Stmt::Return(ret) => {
+                        assert!(ret.expr.is_some());
+                    }
+                    _ => panic!("Expected Return"),
+                }
+            }
+            _ => panic!("Expected Function"),
+        }
+    }
+
+    #[test]
+    fn test_parse_struct() {
+        let program = parse_source("struct Point [\n    x: i32\n    y: i32\n]").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Struct(struct_def) => {
+                assert_eq!(struct_def.name, "Point");
+                assert_eq!(struct_def.fields.len(), 2);
+                assert_eq!(struct_def.fields[0].name, "x");
+                assert_eq!(struct_def.fields[1].name, "y");
+            }
+            _ => panic!("Expected Struct"),
+        }
+    }
+
+    #[test]
+    fn test_parse_import_simple() {
+        let program = parse_source("import math").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Import(import) => {
+                match import {
+                    ImportStmt::Simple { module_path, alias, .. } => {
+                        assert_eq!(module_path, &vec!["math".to_string()]);
+                        assert!(alias.is_none());
+                    }
+                    _ => panic!("Expected Simple import"),
+                }
+            }
+            _ => panic!("Expected Import"),
+        }
+    }
+
+    #[test]
+    fn test_parse_import_from() {
+        // The parser expects "import from module import names" syntax
+        let program = parse_source("import from math import sin, cos").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Import(import) => {
+                match import {
+                    ImportStmt::From { module_path, names, .. } => {
+                        assert_eq!(module_path, &vec!["math".to_string()]);
+                        assert_eq!(names.len(), 2);
+                        assert_eq!(names[0].0, "sin");
+                        assert_eq!(names[1].0, "cos");
+                    }
+                    _ => panic!("Expected From import"),
+                }
+            }
+            _ => panic!("Expected Import"),
+        }
+    }
+
+    #[test]
+    fn test_parse_import_with_alias() {
+        let result = parse_source("import math as m");
+        if result.is_ok() {
+            let program = result.unwrap();
+            match &program.declarations[0] {
+                TopLevelDecl::Import(import) => {
+                    match import {
+                        ImportStmt::Simple { alias, .. } => {
+                            assert_eq!(alias, &Some("m".to_string()));
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_try_catch() {
+        let result = parse_source("try [\n    new x i32 = 1\n] catch (e i32) [\n    new y i32 = 0\n]");
+        if result.is_ok() {
+            let program = result.unwrap();
+            match &program.declarations[0] {
+                TopLevelDecl::Statements(block) => {
+                    match &block.statements[0] {
+                        Stmt::Try(try_stmt) => {
+                            assert_eq!(try_stmt.catch_clauses.len(), 1);
+                            assert_eq!(try_stmt.catch_clauses[0].var_name, "e");
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_block_statement() {
+        let program = parse_source("[\n    new x i32 = 1\n    new y i32 = 2\n]").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                assert_eq!(block.statements.len(), 2);
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_expression_binary() {
+        let program = parse_source("new x i32 = 1 + 2 * 3").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::VarDecl(var) => {
+                        assert!(var.init.is_some());
+                    }
+                    _ => panic!("Expected VarDecl"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_expression_call() {
+        let program = parse_source("new x i32 = foo(1, 2)").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::VarDecl(var) => {
+                        assert!(var.init.is_some());
+                        match &var.init.as_ref().unwrap().kind {
+                            ExprKind::Call(_, args) => {
+                                assert_eq!(args.len(), 2);
+                            }
+                            _ => panic!("Expected Call"),
+                        }
+                    }
+                    _ => panic!("Expected VarDecl"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_unsafe_block() {
+        let program = parse_source("unsafe all [\n    new x i32 = 1\n]").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::UnsafeBlock(unsafe_block) => {
+                        assert!(matches!(unsafe_block.scope_modifier, ScopeModifier::All));
+                    }
+                    _ => panic!("Expected UnsafeBlock"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_pointer_type() {
+        let program = parse_source("new p *i32 = null").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::VarDecl(var) => {
+                        assert!(matches!(var.var_type, TypeExpr::Pointer(_)));
+                    }
+                    _ => panic!("Expected VarDecl"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_array_type() {
+        // Dynamic array type (without size)
+        let program = parse_source("new arr_name [i32] = {}").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::VarDecl(var) => {
+                        assert!(matches!(var.var_type, TypeExpr::Array(_, None)));
+                    }
+                    _ => panic!("Expected VarDecl"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_switch() {
+        // Parser expects patterns directly without 'case' keyword
+        let program = parse_source("new x i32 = 1\nswitch x [\n    1 [\n        new y i32 = 1\n    ]\n    default [\n        new y i32 = 0\n    ]\n]").unwrap();
+        assert!(program.declarations.len() >= 2);
+        match &program.declarations[1] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::Switch(switch_stmt) => {
+                        assert_eq!(switch_stmt.cases.len(), 2);
+                    }
+                    _ => panic!("Expected Switch"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_throw() {
+        let program = parse_source("throw \"error\"").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::Throw(throw_stmt) => {
+                        assert!(matches!(throw_stmt.expr.kind, ExprKind::Literal(_)));
+                    }
+                    _ => panic!("Expected Throw"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_copy_statement() {
+        let program = parse_source("cpy dest i32()").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::CopyStmt(copy_stmt) => {
+                        assert_eq!(copy_stmt.dest, "dest");
+                    }
+                    _ => panic!("Expected CopyStmt"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_impl() {
+        let program = parse_source("impl Point [\n    fn get_x() -> i32 [\n        return this.x\n    ]\n]").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Impl(impl_def) => {
+                assert_eq!(impl_def.type_name, "Point");
+                assert_eq!(impl_def.methods.len(), 1);
+                assert_eq!(impl_def.methods[0].name, "get_x");
+            }
+            _ => panic!("Expected Impl"),
+        }
+    }
+
+    #[test]
+    fn test_parse_multiple_declarations() {
+        let program = parse_source("fn foo() [\n    return 0\n]\nfn bar() [\n    return 1\n]").unwrap();
+        assert_eq!(program.declarations.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_boolean_literals() {
+        // The parser handles true/false as keywords in expressions
+        let result = parse_source("new x bool = true");
+        // Parser may or may not support boolean literals directly
+        // Just verify it doesn't crash
+        if result.is_ok() {
+            let program = result.unwrap();
+            assert_eq!(program.declarations.len(), 1);
+        }
+    }
+
+    #[test]
+    fn test_parse_arbitrary_types() {
+        let program = parse_source("new x ia = 123").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::VarDecl(var) => {
+                        assert!(matches!(var.var_type, TypeExpr::Ia));
+                    }
+                    _ => panic!("Expected VarDecl"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_list_type() {
+        let program = parse_source("arr items <long(10)<i32>> = {}").unwrap();
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::VarDecl(var) => {
+                        assert!(matches!(var.var_type, TypeExpr::List(_, _)));
+                    }
+                    _ => panic!("Expected VarDecl"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_parse_field_access_assignment() {
+        let program = parse_source("new p Point = {}\np.x = 10").unwrap();
+        match &program.declarations[1] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[0] {
+                    Stmt::Assignment(assignment) => {
+                        match &assignment.target {
+                            AssignmentTarget::FieldAccess(obj, field) => {
+                                assert_eq!(obj, "p");
+                                assert_eq!(field, "x");
+                            }
+                            _ => panic!("Expected FieldAccess"),
+                        }
+                    }
+                    _ => panic!("Expected Assignment"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+}

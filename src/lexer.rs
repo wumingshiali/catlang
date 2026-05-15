@@ -610,3 +610,197 @@ impl<'a> Lexer<'a> {
 pub fn tokenize(input: &str) -> LexResult<Vec<Token>> {
     Lexer::new(input).tokenize()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tokenize_basic() {
+        let tokens = tokenize("new x i32 = 42").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 5);
+        assert!(matches!(&non_eof[0].kind, TokenKind::KwNew));
+        assert!(matches!(&non_eof[1].kind, TokenKind::Identifier(_)));
+        assert!(matches!(&non_eof[2].kind, TokenKind::Identifier(_)));
+        assert!(matches!(&non_eof[3].kind, TokenKind::Equal));
+        assert!(matches!(&non_eof[4].kind, TokenKind::IntLiteral(_)));
+    }
+
+    #[test]
+    fn test_tokenize_integers() {
+        let tokens = tokenize("123").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::IntLiteral(v) if v == "123"));
+    }
+
+    #[test]
+    fn test_tokenize_hex_integer() {
+        let tokens = tokenize("0xFF").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::IntLiteral(v) if v == "0xFF"));
+    }
+
+    #[test]
+    fn test_tokenize_float() {
+        let tokens = tokenize("3.14").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::FloatLiteral(v) if v == "3.14"));
+    }
+
+    #[test]
+    fn test_tokenize_float_exponent() {
+        let tokens = tokenize("1e10").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::FloatLiteral(v) if v == "1e10"));
+    }
+
+    #[test]
+    fn test_tokenize_string() {
+        let tokens = tokenize("\"hello\"").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::StringLiteral(v) if v == "hello"));
+    }
+
+    #[test]
+    fn test_tokenize_string_with_escape() {
+        let tokens = tokenize("\"hello\\nworld\"").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::StringLiteral(v) if v.contains('\n')));
+    }
+
+    #[test]
+    fn test_tokenize_interpolated_string() {
+        let tokens = tokenize("\"hello {name}\"").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::StringLiteral(v) if v.starts_with("i:")));
+    }
+
+    #[test]
+    fn test_tokenize_keywords() {
+        let tokens = tokenize("fn if else while for return true false").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 8);
+        assert!(matches!(&non_eof[0].kind, TokenKind::KwFn));
+        assert!(matches!(&non_eof[1].kind, TokenKind::KwIf));
+        assert!(matches!(&non_eof[2].kind, TokenKind::KwElse));
+        assert!(matches!(&non_eof[3].kind, TokenKind::KwWhile));
+        assert!(matches!(&non_eof[4].kind, TokenKind::KwFor));
+        assert!(matches!(&non_eof[5].kind, TokenKind::KwReturn));
+        assert!(matches!(&non_eof[6].kind, TokenKind::KwTrue));
+        assert!(matches!(&non_eof[7].kind, TokenKind::KwFalse));
+    }
+
+    #[test]
+    fn test_tokenize_operators() {
+        let tokens = tokenize("+ - * / % == != > < >= <=").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 11);
+        assert!(matches!(&non_eof[0].kind, TokenKind::Plus));
+        assert!(matches!(&non_eof[1].kind, TokenKind::Minus));
+        assert!(matches!(&non_eof[2].kind, TokenKind::Star));
+        assert!(matches!(&non_eof[3].kind, TokenKind::Slash));
+        assert!(matches!(&non_eof[4].kind, TokenKind::Percent));
+        assert!(matches!(&non_eof[5].kind, TokenKind::EqualEqual));
+        assert!(matches!(&non_eof[6].kind, TokenKind::NotEqual));
+        assert!(matches!(&non_eof[7].kind, TokenKind::Greater));
+        assert!(matches!(&non_eof[8].kind, TokenKind::Less));
+        assert!(matches!(&non_eof[9].kind, TokenKind::GreaterEqual));
+        assert!(matches!(&non_eof[10].kind, TokenKind::LessEqual));
+    }
+
+    #[test]
+    fn test_tokenize_compound_assignment() {
+        let tokens = tokenize("+=").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::PlusEqual));
+    }
+
+    #[test]
+    fn test_tokenize_logical_operators() {
+        let tokens = tokenize("&& ||").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 2);
+        assert!(matches!(&non_eof[0].kind, TokenKind::AndAnd));
+        assert!(matches!(&non_eof[1].kind, TokenKind::OrOr));
+    }
+
+    #[test]
+    fn test_tokenize_delimiters() {
+        let tokens = tokenize("( ) [ ] { } , . :").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 9);
+        assert!(matches!(&non_eof[0].kind, TokenKind::LParen));
+        assert!(matches!(&non_eof[1].kind, TokenKind::RParen));
+        assert!(matches!(&non_eof[2].kind, TokenKind::LBracket));
+        assert!(matches!(&non_eof[3].kind, TokenKind::RBracket));
+        assert!(matches!(&non_eof[4].kind, TokenKind::LBrace));
+        assert!(matches!(&non_eof[5].kind, TokenKind::RBrace));
+        assert!(matches!(&non_eof[6].kind, TokenKind::Comma));
+        assert!(matches!(&non_eof[7].kind, TokenKind::Dot));
+        assert!(matches!(&non_eof[8].kind, TokenKind::Colon));
+    }
+
+    #[test]
+    fn test_tokenize_comment() {
+        let tokens = tokenize("; this is a comment").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::Comment(_)));
+    }
+
+    #[test]
+    fn test_tokenize_whitespace() {
+        let tokens = tokenize("   \t  \n  ").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 0);
+    }
+
+    #[test]
+    fn test_tokenize_empty() {
+        let tokens = tokenize("").unwrap();
+        assert_eq!(tokens.len(), 1);
+        assert!(matches!(&tokens[0].kind, TokenKind::Eof));
+    }
+
+    #[test]
+    fn test_tokenize_arrow() {
+        let tokens = tokenize("->").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::Arrow));
+    }
+
+    #[test]
+    fn test_tokenize_unterminated_string() {
+        // Lexer handles unterminated strings by stopping at EOF without error
+        let tokens = tokenize("\"hello").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 1);
+        assert!(matches!(&non_eof[0].kind, TokenKind::StringLiteral(_)));
+    }
+
+    #[test]
+    fn test_tokenize_invalid_escape() {
+        let result = tokenize("\"hello\\z\"");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tokenize_identifiers() {
+        let tokens = tokenize("foo bar_baz _qux").unwrap();
+        let non_eof: Vec<_> = tokens.iter().filter(|t| !matches!(t.kind, TokenKind::Eof)).collect();
+        assert_eq!(non_eof.len(), 3);
+        assert!(matches!(&non_eof[0].kind, TokenKind::Identifier(v) if v == "foo"));
+        assert!(matches!(&non_eof[1].kind, TokenKind::Identifier(v) if v == "bar_baz"));
+        assert!(matches!(&non_eof[2].kind, TokenKind::Identifier(v) if v == "_qux"));
+    }
+}

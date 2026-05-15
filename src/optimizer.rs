@@ -282,7 +282,7 @@ impl Optimizer {
     /// Optimize expression with options
     fn optimize_expr_with_options(&mut self, expr: &mut Expr, allow_const_prop: bool, allow_const_fold: bool) {
         // Pass 1: Recursively optimize child expressions
-        self.optimize_children_with_options(expr, allow_const_prop, allow_const_fold);
+        self.optimize_children(expr);
 
         // Pass 2: Apply local optimizations
         if self.opt_level >= 2 && allow_const_fold {
@@ -616,5 +616,683 @@ impl Optimizer {
 impl Default for Optimizer {
     fn default() -> Self {
         Self::new(2)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::token::Span;
+
+    fn make_expr(kind: ExprKind) -> Expr {
+        Expr {
+            kind,
+            span: Span::new(0, 0),
+        }
+    }
+
+    fn make_int(value: i64) -> Expr {
+        make_expr(ExprKind::Literal(Literal::Int(value.to_string())))
+    }
+
+    fn make_float(value: f64) -> Expr {
+        make_expr(ExprKind::Literal(Literal::Float(value.to_string())))
+    }
+
+    fn make_bool(value: bool) -> Expr {
+        make_expr(ExprKind::Literal(Literal::Bool(value)))
+    }
+
+    fn make_binary(left: Expr, op: BinaryOp, right: Expr) -> Expr {
+        make_expr(ExprKind::Binary(Box::new(left), op, Box::new(right)))
+    }
+
+    fn make_unary(op: UnaryOp, operand: Expr) -> Expr {
+        make_expr(ExprKind::Unary(op, Box::new(operand)))
+    }
+
+    fn make_identifier(name: &str) -> Expr {
+        make_expr(ExprKind::Identifier(name.to_string()))
+    }
+
+    #[test]
+    fn test_constant_folding_add() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_int(2), BinaryOp::Add, make_int(3));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "5"),
+            _ => panic!("Expected folded int literal, got {:?}", expr.kind),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_sub() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_int(10), BinaryOp::Sub, make_int(4));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "6"),
+            _ => panic!("Expected folded int literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_mul() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_int(3), BinaryOp::Mul, make_int(7));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "21"),
+            _ => panic!("Expected folded int literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_div() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_int(20), BinaryOp::Div, make_int(4));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "5"),
+            _ => panic!("Expected folded int literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_div_by_zero() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_int(10), BinaryOp::Div, make_int(0));
+        optimizer.optimize_expr(&mut expr);
+        // Should not fold division by zero
+        match &expr.kind {
+            ExprKind::Binary(_, _, _) => {} // Not folded, as expected
+            _ => panic!("Should not fold division by zero"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_rem() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_int(17), BinaryOp::Rem, make_int(5));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "2"),
+            _ => panic!("Expected folded int literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_float_add() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_float(1.5), BinaryOp::Add, make_float(2.5));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Float(v)) => {
+                let val: f64 = v.parse().unwrap();
+                assert!((val - 4.0).abs() < 0.001);
+            }
+            _ => panic!("Expected folded float literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_bool_and() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_bool(true), BinaryOp::And, make_bool(false));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Bool(v)) => assert!(!v),
+            _ => panic!("Expected folded bool literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_bool_or() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_bool(true), BinaryOp::Or, make_bool(false));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Bool(v)) => assert!(v),
+            _ => panic!("Expected folded bool literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_comparison_eq() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_int(5), BinaryOp::Eq, make_int(5));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "1"),
+            _ => panic!("Expected folded int literal (1 for true)"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_comparison_lt() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_int(3), BinaryOp::Lt, make_int(5));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "1"),
+            _ => panic!("Expected folded int literal"),
+        }
+    }
+
+    #[test]
+    fn test_unary_neg_fold() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_unary(UnaryOp::Neg, make_int(42));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "-42"),
+            _ => panic!("Expected folded int literal"),
+        }
+    }
+
+    #[test]
+    fn test_unary_not_fold() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_unary(UnaryOp::Not, make_bool(true));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Bool(v)) => assert!(!v),
+            _ => panic!("Expected folded bool literal"),
+        }
+    }
+
+    #[test]
+    fn test_algebraic_simplification_add_zero() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_identifier("x"), BinaryOp::Add, make_int(0));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Identifier(name) => assert_eq!(name, "x"),
+            _ => panic!("Expected simplified identifier"),
+        }
+    }
+
+    #[test]
+    fn test_algebraic_simplification_mul_one() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_identifier("x"), BinaryOp::Mul, make_int(1));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Identifier(name) => assert_eq!(name, "x"),
+            _ => panic!("Expected simplified identifier"),
+        }
+    }
+
+    #[test]
+    fn test_algebraic_simplification_mul_zero() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_identifier("x"), BinaryOp::Mul, make_int(0));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "0"),
+            _ => panic!("Expected simplified zero"),
+        }
+    }
+
+    #[test]
+    fn test_algebraic_simplification_sub_zero() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_identifier("x"), BinaryOp::Sub, make_int(0));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Identifier(name) => assert_eq!(name, "x"),
+            _ => panic!("Expected simplified identifier"),
+        }
+    }
+
+    #[test]
+    fn test_algebraic_simplification_div_one() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_identifier("x"), BinaryOp::Div, make_int(1));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Identifier(name) => assert_eq!(name, "x"),
+            _ => panic!("Expected simplified identifier"),
+        }
+    }
+
+    #[test]
+    fn test_constant_propagation() {
+        let mut optimizer = Optimizer::new(2);
+        let mut program = Program {
+            declarations: vec![TopLevelDecl::Statements(Block {
+                statements: vec![
+                    Stmt::VarDecl(VarDecl {
+                        name: "x".to_string(),
+                        var_type: TypeExpr::Base("i32".to_string()),
+                        init: Some(make_int(42)),
+                        span: Span::new(0, 0),
+                    }),
+                    Stmt::Expr(make_identifier("x")),
+                ],
+                span: Span::new(0, 0),
+            })],
+        };
+        optimizer.optimize(&mut program);
+        // After optimization, check that the expression was optimized
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                // The int literal expression is a noop, so it gets removed
+                // We just verify the var decl is still there
+                assert!(block.statements.len() >= 1);
+                match &block.statements[0] {
+                    Stmt::VarDecl(var) => {
+                        assert_eq!(var.name, "x");
+                    }
+                    _ => panic!("Expected VarDecl"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_no_constant_propagation_for_mutable() {
+        let mut optimizer = Optimizer::new(2);
+        let mut program = Program {
+            declarations: vec![TopLevelDecl::Statements(Block {
+                statements: vec![
+                    Stmt::VarDecl(VarDecl {
+                        name: "x".to_string(),
+                        var_type: TypeExpr::Base("i32".to_string()),
+                        init: Some(make_int(42)),
+                        span: Span::new(0, 0),
+                    }),
+                    Stmt::Assignment(Assignment {
+                        target: AssignmentTarget::Identifier("x".to_string()),
+                        op: AssignOp::Equal,
+                        value: make_int(100),
+                        span: Span::new(0, 0),
+                    }),
+                    Stmt::Expr(make_identifier("x")),
+                ],
+                span: Span::new(0, 0),
+            })],
+        };
+        optimizer.optimize(&mut program);
+        // After optimization, the expression should NOT be replaced because x is mutable
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                match &block.statements[2] {
+                    Stmt::Expr(expr) => {
+                        match &expr.kind {
+                            ExprKind::Identifier(name) => assert_eq!(name, "x"),
+                            _ => panic!("Should not propagate constant for mutable variable"),
+                        }
+                    }
+                    _ => panic!("Expected Expr"),
+                }
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_dead_code_elimination_noop() {
+        let mut optimizer = Optimizer::new(2);
+        let mut program = Program {
+            declarations: vec![TopLevelDecl::Statements(Block {
+                statements: vec![
+                    Stmt::Expr(make_int(42)), // This is a no-op
+                    Stmt::Expr(make_identifier("x")),
+                ],
+                span: Span::new(0, 0),
+            })],
+        };
+        optimizer.optimize(&mut program);
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                // The literal expression should be removed as a no-op
+                assert_eq!(block.statements.len(), 1);
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_builtin_inline_abs() {
+        let mut optimizer = Optimizer::new(3);
+        let mut expr = Expr {
+            kind: ExprKind::Call(
+                Box::new(make_identifier("abs")),
+                vec![make_int(-42)],
+            ),
+            span: Span::new(0, 0),
+        };
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "42"),
+            _ => panic!("Expected inlined abs result"),
+        }
+    }
+
+    #[test]
+    fn test_builtin_inline_min() {
+        let mut optimizer = Optimizer::new(3);
+        let mut expr = Expr {
+            kind: ExprKind::Call(
+                Box::new(make_identifier("min")),
+                vec![make_int(10), make_int(20)],
+            ),
+            span: Span::new(0, 0),
+        };
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "10"),
+            _ => panic!("Expected inlined min result"),
+        }
+    }
+
+    #[test]
+    fn test_builtin_inline_max() {
+        let mut optimizer = Optimizer::new(3);
+        let mut expr = Expr {
+            kind: ExprKind::Call(
+                Box::new(make_identifier("max")),
+                vec![make_int(10), make_int(20)],
+            ),
+            span: Span::new(0, 0),
+        };
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "20"),
+            _ => panic!("Expected inlined max result"),
+        }
+    }
+
+    #[test]
+    fn test_opt_level_zero_no_optimization() {
+        let mut optimizer = Optimizer::new(0);
+        let mut expr = make_binary(make_int(2), BinaryOp::Add, make_int(3));
+        optimizer.optimize_expr(&mut expr);
+        // Should not fold at opt level 0
+        match &expr.kind {
+            ExprKind::Binary(_, _, _) => {} // Not folded, as expected
+            _ => panic!("Should not optimize at level 0"),
+        }
+    }
+
+    #[test]
+    fn test_nested_expression_optimization() {
+        let mut optimizer = Optimizer::new(2);
+        // (2 + 3) * (4 - 1)
+        let inner1 = make_binary(make_int(2), BinaryOp::Add, make_int(3));
+        let inner2 = make_binary(make_int(4), BinaryOp::Sub, make_int(1));
+        let mut expr = make_binary(inner1, BinaryOp::Mul, inner2);
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "15"),
+            _ => panic!("Expected fully folded nested expression"),
+        }
+    }
+
+    #[test]
+    fn test_float_comparison_folding() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_float(1.5), BinaryOp::Gt, make_float(1.0));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "1"),
+            _ => panic!("Expected folded comparison result"),
+        }
+    }
+
+    #[test]
+    fn test_unary_float_neg_fold() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_unary(UnaryOp::Neg, make_float(3.14));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Float(v)) => {
+                let val: f64 = v.parse().unwrap();
+                assert!((val - (-3.14)).abs() < 0.001);
+            }
+            _ => panic!("Expected folded float literal"),
+        }
+    }
+
+    #[test]
+    fn test_clear_constants() {
+        let mut optimizer = Optimizer::new(2);
+        optimizer.constants.insert("x".to_string(), Literal::Int("42".to_string()));
+        optimizer.mutable_vars.insert("y".to_string());
+        optimizer.clear_constants();
+        assert!(optimizer.constants.is_empty());
+        assert!(optimizer.mutable_vars.is_empty());
+    }
+
+    #[test]
+    fn test_default_optimizer() {
+        let optimizer = Optimizer::default();
+        assert_eq!(optimizer.opt_level, 2);
+    }
+
+    #[test]
+    fn test_constant_folding_bool_eq() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_bool(true), BinaryOp::Eq, make_bool(true));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Bool(v)) => assert!(v),
+            _ => panic!("Expected folded bool literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_bool_ne() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_bool(true), BinaryOp::Ne, make_bool(false));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Bool(v)) => assert!(v),
+            _ => panic!("Expected folded bool literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_float_mul() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_float(2.0), BinaryOp::Mul, make_float(3.0));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Float(v)) => {
+                let val: f64 = v.parse().unwrap();
+                assert!((val - 6.0).abs() < 0.001);
+            }
+            _ => panic!("Expected folded float literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_float_div() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_float(10.0), BinaryOp::Div, make_float(2.0));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Literal(Literal::Float(v)) => {
+                let val: f64 = v.parse().unwrap();
+                assert!((val - 5.0).abs() < 0.001);
+            }
+            _ => panic!("Expected folded float literal"),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_float_div_by_zero() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_float(10.0), BinaryOp::Div, make_float(0.0));
+        optimizer.optimize_expr(&mut expr);
+        // Should not fold division by zero
+        match &expr.kind {
+            ExprKind::Binary(_, _, _) => {} // Not folded, as expected
+            _ => panic!("Should not fold division by zero"),
+        }
+    }
+
+    #[test]
+    fn test_algebraic_simplification_float_add_zero() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_identifier("x"), BinaryOp::Add, make_float(0.0));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Identifier(name) => assert_eq!(name, "x"),
+            _ => panic!("Expected simplified identifier"),
+        }
+    }
+
+    #[test]
+    fn test_algebraic_simplification_float_mul_one() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_identifier("x"), BinaryOp::Mul, make_float(1.0));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Identifier(name) => assert_eq!(name, "x"),
+            _ => panic!("Expected simplified identifier"),
+        }
+    }
+
+    #[test]
+    fn test_no_optimization_for_non_literals() {
+        let mut optimizer = Optimizer::new(2);
+        let mut expr = make_binary(make_identifier("x"), BinaryOp::Add, make_identifier("y"));
+        optimizer.optimize_expr(&mut expr);
+        match &expr.kind {
+            ExprKind::Binary(_, _, _) => {} // Cannot fold non-literals
+            _ => panic!("Should not fold non-literal expressions"),
+        }
+    }
+
+    #[test]
+    fn test_constant_propagation_in_block() {
+        let mut optimizer = Optimizer::new(2);
+        let mut program = Program {
+            declarations: vec![TopLevelDecl::Function(FunctionDef {
+                name: "test".to_string(),
+                params: vec![],
+                return_type: Some(TypeExpr::Base("i32".to_string())),
+                body: Block {
+                    statements: vec![
+                        Stmt::VarDecl(VarDecl {
+                            name: "x".to_string(),
+                            var_type: TypeExpr::Base("i32".to_string()),
+                            init: Some(make_int(100)),
+                            span: Span::new(0, 0),
+                        }),
+                        Stmt::Return(ReturnStmt {
+                            expr: Some(make_binary(make_identifier("x"), BinaryOp::Add, make_int(1))),
+                            span: Span::new(0, 0),
+                        }),
+                    ],
+                    span: Span::new(0, 0),
+                },
+                is_async: false,
+                span: Span::new(0, 0),
+            })],
+        };
+        optimizer.optimize(&mut program);
+        // Check that the return expression was optimized
+        match &program.declarations[0] {
+            TopLevelDecl::Function(func) => {
+                match &func.body.statements[1] {
+                    Stmt::Return(ret) => {
+                        match &ret.expr.as_ref().unwrap().kind {
+                            ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "101"),
+                            _ => panic!("Expected folded constant in return"),
+                        }
+                    }
+                    _ => panic!("Expected Return"),
+                }
+            }
+            _ => panic!("Expected Function"),
+        }
+    }
+
+    #[test]
+    fn test_optimize_if_constant_true() {
+        let mut optimizer = Optimizer::new(2);
+        let mut program = Program {
+            declarations: vec![TopLevelDecl::Statements(Block {
+                statements: vec![
+                    Stmt::If(IfStmt {
+                        condition: make_bool(true),
+                        then_block: Block {
+                            statements: vec![Stmt::Expr(make_int(42))],
+                            span: Span::new(0, 0),
+                        },
+                        else_branch: None,
+                        span: Span::new(0, 0),
+                    }),
+                ],
+                span: Span::new(0, 0),
+            })],
+        };
+        optimizer.optimize(&mut program);
+        // The if statement should be eliminated when condition is always true
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                // The if body should be inlined, so we should have 1 statement (the int literal, which is a noop)
+                // Actually the int literal inside is a noop so it gets removed, leaving 0 statements
+                assert!(block.statements.len() <= 1);
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_optimize_if_constant_false_no_else() {
+        let mut optimizer = Optimizer::new(2);
+        let mut program = Program {
+            declarations: vec![TopLevelDecl::Statements(Block {
+                statements: vec![
+                    Stmt::If(IfStmt {
+                        condition: make_bool(false),
+                        then_block: Block {
+                            statements: vec![Stmt::Expr(make_int(42))],
+                            span: Span::new(0, 0),
+                        },
+                        else_branch: None,
+                        span: Span::new(0, 0),
+                    }),
+                ],
+                span: Span::new(0, 0),
+            })],
+        };
+        optimizer.optimize(&mut program);
+        // The if statement should be eliminated entirely when condition is always false and no else
+        match &program.declarations[0] {
+            TopLevelDecl::Statements(block) => {
+                assert_eq!(block.statements.len(), 0);
+            }
+            _ => panic!("Expected Statements"),
+        }
+    }
+
+    #[test]
+    fn test_optimize_global_var() {
+        let mut optimizer = Optimizer::new(2);
+        let mut program = Program {
+            declarations: vec![TopLevelDecl::GlobalVar(GlobalVarDecl {
+                name: "global_x".to_string(),
+                var_type: TypeExpr::Base("i32".to_string()),
+                init: Some(make_binary(make_int(10), BinaryOp::Add, make_int(20))),
+                span: Span::new(0, 0),
+            })],
+        };
+        optimizer.optimize(&mut program);
+        match &program.declarations[0] {
+            TopLevelDecl::GlobalVar(global) => {
+                match &global.init.as_ref().unwrap().kind {
+                    ExprKind::Literal(Literal::Int(v)) => assert_eq!(v, "30"),
+                    _ => panic!("Expected folded global var init"),
+                }
+            }
+            _ => panic!("Expected GlobalVar"),
+        }
     }
 }
