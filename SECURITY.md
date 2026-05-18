@@ -11,11 +11,11 @@
 
 ## Reporting a Vulnerability
 
-Vulnerability Severity Levels:
-| Attack Vector            | Consequence                  | Level    |
-| ------------------------ | ---------------------------- | -------- |
-| Code Injection           | N/A                          | Medium   |
-| Path Traversal           | N/A                          | High     |
-| Improper Input Handling  | N/A                          | Critical |
-| N/A                      | Arbitrary Command Execution  | Critical |
-| Other                    | N/A                          | Low      |
+Vulnerability Severity Classification:
+| Vulnerability Type              | Impact                          | Severity |
+| ------------------------------- | ------------------------------- | -------- |
+| Compiler/Interpreter Logic Flaw | Denial of Service / Data Leak   | Medium   |
+| Stdlib File/Path Handling       | Path Traversal / Unauthorized Access | High     |
+| String/Encoding Mishandling     | Memory Corruption / RCE         | Critical |
+| Sandbox/Unsafe Feature Escape   | Arbitrary Command Execution     | Critical |
+| Toolchain/Dependency Supply Chain | Limited Scope / Local Impact  | Low      |
