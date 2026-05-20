@@ -376,38 +376,6 @@ async fn game_loop() [
 ]
 ```
 
-## 9.6 Third-Party Library Management
-
-### Dependency Declaration
-
-```catlang
-; Assuming a package management configuration file package.catlang
-[package]
-name = "my_app"
-version = "1.0.0"
-
-[dependencies]
-numpy = "1.24.0"
-pandas = "2.0.0"
-web_framework = "0.5.0"
-
-[dev-dependencies]
-test_framework = "1.0.0"
-```
-
-### Install Dependencies
-
-```bash
-# Install all dependencies
-catpkg install
-
-# Install specific package
-catpkg install numpy
-
-# Update dependencies
-catpkg update
-```
-
 ## 9.7 Best Practices
 
 ### 1. Use Meaningful Aliases

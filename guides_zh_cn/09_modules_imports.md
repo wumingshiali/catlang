@@ -376,38 +376,6 @@ async fn game_loop() [
 ]
 ```
 
-## 9.6 第三方库管理
-
-### 依赖声明
-
-```catlang
-; 假设有一个包管理配置文件 package.catlang
-[package]
-name = "my_app"
-version = "1.0.0"
-
-[dependencies]
-numpy = "1.24.0"
-pandas = "2.0.0"
-web_framework = "0.5.0"
-
-[dev-dependencies]
-test_framework = "1.0.0"
-```
-
-### 安装依赖
-
-```bash
-# 安装所有依赖
-catpkg install
-
-# 安装特定包
-catpkg install numpy
-
-# 更新依赖
-catpkg update
-```
-
 ## 9.7 最佳实践
 
 ### 1. 使用有意义的别名

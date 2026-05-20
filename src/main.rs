@@ -11,12 +11,13 @@
 //!   -O, --opt <LVL>  Optimization level (0-3, default: 2)
 //!   --release        Enable release mode (equivalent to -O 3)
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 
 use catlang::compile_with_opts;
+use catlang::parrot;
 
 #[derive(Parser, Debug)]
 #[command(name = "catc")]
@@ -24,9 +25,12 @@ use catlang::compile_with_opts;
 #[command(version = "0.1.0")]
 #[command(about = "CatLang Compiler - Compiles .cat files to .exe", long_about = None)]
 struct Args {
+    #[command(subcommand)]
+    command: Option<Commands>,
+
     /// Input CatLang source file
-    #[arg(required = true)]
-    input: String,
+    #[arg(required = false)]
+    input: Option<String>,
 
     /// Optimization level (0-3)
     #[arg(short = 'O', long = "opt", default_value = "2")]
@@ -37,25 +41,80 @@ struct Args {
     release: bool,
 }
 
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Compile a CatLang source file
+    Build {
+        /// Input CatLang source file
+        input: String,
+    },
+    /// Parrot package manager
+    Parrot {
+        #[command(subcommand)]
+        action: ParrotAction,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum ParrotAction {
+    /// Install dependencies from Parrot.toml
+    Install,
+    /// Add a dependency
+    Add {
+        /// Package name
+        name: String,
+        /// Version (default: "latest")
+        #[arg(default_value = "latest")]
+        version: String,
+    },
+    /// Remove a dependency
+    Remove {
+        /// Package name
+        name: String,
+    },
+    /// Update dependencies
+    Update,
+    /// List installed dependencies
+    List,
+}
+
 fn main() {
     let args = Args::parse();
 
-    // Read input file
-    let input_path = Path::new(&args.input);
+    match args.command {
+        Some(Commands::Build { input }) => {
+            compile_file(&input, args.opt_level, args.release);
+        }
+        Some(Commands::Parrot { action }) => {
+            handle_parrot_action(action);
+        }
+        None => {
+            // Backward compatibility: if input is provided without subcommand
+            if let Some(input) = args.input {
+                compile_file(&input, args.opt_level, args.release);
+            } else {
+                eprintln!("Usage: catc <INPUT> or catc build <INPUT> or catc parrot <ACTION>");
+                std::process::exit(1);
+            }
+        }
+    }
+}
+
+fn compile_file(input: &str, opt_level: u8, release: bool) {
+    let input_path = Path::new(input);
     if !input_path.exists() {
-        eprintln!("Error: Input file '{}' does not exist", args.input);
+        eprintln!("Error: Input file '{}' does not exist", input);
         std::process::exit(1);
     }
 
     let source = match fs::read_to_string(input_path) {
         Ok(content) => content,
         Err(e) => {
-            eprintln!("Error reading file '{}': {}", args.input, e);
+            eprintln!("Error reading file '{}': {}", input, e);
             std::process::exit(1);
         }
     };
 
-    // Get output name (replace .cat with .exe)
     let output_name = input_path
         .file_stem()
         .and_then(|s| s.to_str())
@@ -63,11 +122,10 @@ fn main() {
     let output_exe = format!("{}.exe", output_name);
     let zig_file = format!("{}.zig", output_name);
 
-    // Determine optimization level
-    let opt_level = if args.release {
+    let opt_level = if release {
         3
     } else {
-        args.opt_level.min(3)
+        opt_level.min(3)
     };
     let zig_opt = if opt_level >= 3 {
         "ReleaseFast"
@@ -81,10 +139,9 @@ fn main() {
 
     eprintln!(
         "[catc] Compiling '{}' (optimization level: {})...",
-        args.input, opt_level
+        input, opt_level
     );
 
-    // Compile CatLang to Zig
     let zig_code = match compile_with_opts(&source, opt_level) {
         Ok(code) => code,
         Err(e) => {
@@ -93,7 +150,6 @@ fn main() {
         }
     };
 
-    // Write Zig code to file
     match fs::write(&zig_file, &zig_code) {
         Ok(_) => eprintln!("[catc] Generated '{}'", zig_file),
         Err(e) => {
@@ -102,7 +158,6 @@ fn main() {
         }
     };
 
-    // Compile Zig to executable
     eprintln!("[catc] Building executable with Zig (-O {})...", zig_opt);
     let output_arg = format!("-femit-bin={}", output_exe);
 
@@ -114,7 +169,6 @@ fn main() {
         zig_opt.to_string(),
     ];
 
-    // Add frame pointer for Debug mode only
     if opt_level == 0 {
         zig_args.push("-fno-omit-frame-pointer".to_string());
     }
@@ -134,12 +188,143 @@ fn main() {
                 "Error: Could not find 'zig' compiler. Please ensure Zig is installed and in PATH."
             );
             eprintln!("Error details: {}", e);
-            // Keep zig file for debugging
-            // let _ = fs::remove_file(&zig_file);
             std::process::exit(1);
         }
     }
 
     let _ = fs::remove_file(&zig_file);
     eprintln!("[catc] Successfully created '{}'", output_exe);
+}
+
+fn handle_parrot_action(action: ParrotAction) {
+    match action {
+        ParrotAction::Install => {
+            cmd_install();
+        }
+        ParrotAction::Add { name, version } => {
+            cmd_add(&name, &version);
+        }
+        ParrotAction::Remove { name } => {
+            cmd_remove(&name);
+        }
+        ParrotAction::Update => {
+            cmd_update();
+        }
+        ParrotAction::List => {
+            cmd_list();
+        }
+    }
+}
+
+fn find_config_or_exit() -> (parrot::ParrotConfig, std::path::PathBuf) {
+    let cwd = std::env::current_dir().unwrap_or_else(|e| {
+        eprintln!("Error: Cannot determine current directory: {}", e);
+        std::process::exit(1);
+    });
+
+    match parrot::find_config(&cwd.join("dummy.cat")) {
+        Ok(config_path) => {
+            match parrot::parse_config(&config_path) {
+                Ok(config) => (config, config_path),
+                Err(e) => {
+                    eprintln!("Error parsing Parrot.toml: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            eprintln!("Run 'catc parrot init' to create a new project");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn cmd_install() {
+    let (config, config_path) = find_config_or_exit();
+    let global_dir = parrot::global_packages_dir();
+
+    eprintln!("[parrot] Installing dependencies...");
+
+    let deps = parrot::resolve_dependencies(&config, &config_path);
+    if deps.is_empty() {
+        eprintln!("[parrot] No dependencies found or installed");
+        return;
+    }
+
+    for dep in &deps {
+        eprintln!("[parrot] {}@{} -> {}", dep.name, dep.version, dep.path.display());
+    }
+
+    // Ensure global packages directory exists
+    let _ = fs::create_dir_all(&global_dir);
+
+    eprintln!("[parrot] {} dependencies ready", deps.len());
+}
+
+fn cmd_add(name: &str, version: &str) {
+    let (mut config, config_path) = find_config_or_exit();
+
+    config.dependencies.insert(name.to_string(), version.to_string());
+
+    let toml_content = toml::to_string_pretty(&config).unwrap_or_else(|e| {
+        eprintln!("Error serializing config: {}", e);
+        std::process::exit(1);
+    });
+
+    fs::write(&config_path, toml_content).unwrap_or_else(|e| {
+        eprintln!("Error writing Parrot.toml: {}", e);
+        std::process::exit(1);
+    });
+
+    eprintln!("[parrot] Added {}@{} to dependencies", name, version);
+}
+
+fn cmd_remove(name: &str) {
+    let (mut config, config_path) = find_config_or_exit();
+
+    if config.dependencies.remove(name).is_none() {
+        eprintln!("[parrot] Warning: {} not found in dependencies", name);
+        return;
+    }
+
+    let toml_content = toml::to_string_pretty(&config).unwrap_or_else(|e| {
+        eprintln!("Error serializing config: {}", e);
+        std::process::exit(1);
+    });
+
+    fs::write(&config_path, toml_content).unwrap_or_else(|e| {
+        eprintln!("Error writing Parrot.toml: {}", e);
+        std::process::exit(1);
+    });
+
+    eprintln!("[parrot] Removed {} from dependencies", name);
+}
+
+fn cmd_update() {
+    let (_config, _config_path) = find_config_or_exit();
+    eprintln!("[parrot] Update not yet implemented");
+}
+
+fn cmd_list() {
+    let (config, config_path) = find_config_or_exit();
+    let deps = parrot::resolve_dependencies(&config, &config_path);
+
+    if config.dependencies.is_empty() {
+        eprintln!("[parrot] No dependencies declared");
+        return;
+    }
+
+    eprintln!("[parrot] Dependencies:");
+    for (name, version) in &config.dependencies {
+        let status = deps.iter().find(|d| &d.name == name);
+        match status {
+            Some(dep) => {
+                eprintln!("  {}@{} (installed: {})", name, version, dep.path.display());
+            }
+            None => {
+                eprintln!("  {}@{} (not installed)", name, version);
+            }
+        }
+    }
 }

@@ -114,32 +114,11 @@ target\release\catlang.exe --version
 ./target/release/catlang --version
 ```
 
-## 0.3 Download Pre-built Version
-
-If you don't want to compile it yourself, you can download the pre-built CatLang compiler.
-
-### Release Version (Not Available Yet)
-
-Visit the project's Releases page to download the pre-built version for your platform:
-
-```
-N/A
-```
-
-### Extract and Use
-
-```bash
-# Windows - Extract and run catlang.exe directly
-# macOS/Linux - May need to add execute permission
-chmod +x catlang
-```
-
 ## 0.4 Configure Editor (Optional)
 
-### VS Code Configuration (Not Available Yet)
+### VS Code Configuration
 
-1. Install CatLang language support extension (if available)
-2. Create `.vscode/settings.json`:
+1. Create `.vscode/settings.json`:
 
 ```json
 {
@@ -150,7 +129,7 @@ chmod +x catlang
 }
 ```
 
-3. Create task configuration file `.vscode/tasks.json`: (This is available)
+2. Create task configuration file `.vscode/tasks.json`:
 
 ```json
 {

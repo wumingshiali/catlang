@@ -242,7 +242,6 @@ async fn with_timeout(operation: async, timeout_ms: i32) -> str [
     ]
 
     ; Wait for either to complete
-    ; Note: This is pseudo-code, actual select/race semantics needed
     return await op_handle
 ]
 
@@ -339,106 +338,7 @@ async fn event_handler(queue: Channel) [
 ]
 ```
 
-## 8.5 Concurrency Primitives
-
-### Mutex (Pseudo-code)
-
-```catlang
-struct Mutex [
-    locked: bool
-]
-
-impl Mutex [
-    fn lock(self: Mutex) [
-        while (self.locked) [
-            await sleep(1)
-        ]
-        self.locked = true
-    ]
-
-    fn unlock(self: Mutex) [
-        self.locked = false
-    ]
-]
-
-async fn critical_section(mutex: Mutex, id: i32) [
-    mutex.lock()
-    print("Thread{id} enters critical section")
-    await sleep(50)
-    print("Thread{id} leaves critical section")
-    mutex.unlock()
-]
-
-[
-    new mutex = Mutex { locked: false }
-
-    new h1 = spawn critical_section(mutex, 1)
-    new h2 = spawn critical_section(mutex, 2)
-    new h3 = spawn critical_section(mutex, 3)
-
-    await h1
-    await h2
-    await h3
-
-    return 0
-]
-```
-
-### Semaphore (Pseudo-code)
-
-```catlang
-struct Semaphore [
-    count: i32
-]
-
-impl Semaphore [
-    fn acquire(self: Semaphore) [
-        while (self.count <= 0) [
-            await sleep(1)
-        ]
-        self.count = self.count - 1
-    ]
-
-    fn release(self: Semaphore) [
-        self.count = self.count + 1
-    ]
-]
-```
-
-### Read-Write Lock (Pseudo-code)
-
-```catlang
-struct RwLock [
-    readers: i32
-    writer: bool
-]
-
-impl RwLock [
-    fn read_lock(self: RwLock) [
-        while (self.writer) [
-            await sleep(1)
-        ]
-        self.readers = self.readers + 1
-    ]
-
-    fn read_unlock(self: RwLock) [
-        self.readers = self.readers - 1
-    ]
-
-    fn write_lock(self: RwLock) [
-        while (self.writer || self.readers > 0) [
-            await sleep(1)
-        ]
-        self.writer = true
-    ]
-
-    fn write_unlock(self: RwLock) [
-        self.writer = false
-    ]
-]
-```
-
-## 8.6 Async Best Practices
+## 8.5 Async Best Practices
 
 ### 1. Avoid Blocking
 
@@ -512,7 +412,7 @@ async fn with_resource() [
 ]
 ```
 
-## 8.7 Exercises
+## 8.6 Exercises
 
 1. Create two concurrent tasks, one printing odd numbers and one printing even numbers, each printing 5 times
 2. Implement an async function that simulates fetching data from multiple APIs in parallel and merging results

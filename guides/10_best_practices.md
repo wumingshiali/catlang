@@ -405,57 +405,7 @@ fn load_config() -> Config [
 ]
 ```
 
-## 10.5 Testing Suggestions
-
-### Unit Tests
-
-```catlang
-; Assuming a test framework
-import test_framework as tf
-
-fn add(a: i32, b: i32) -> i32 [
-    return a + b
-]
-
-tf.test("add positive numbers") [
-    new result = add(2, 3)
-    tf.assert_equal(result, 5)
-]
-
-tf.test("add negative numbers") [
-    new result = add(-2, -3)
-    tf.assert_equal(result, -5)
-]
-
-tf.test("add mixed numbers") [
-    new result = add(-2, 3)
-    tf.assert_equal(result, 1)
-]
-```
-
-### Boundary Tests
-
-```catlang
-tf.test("empty array") [
-    new arr = []
-    new sum = sum_array(arr)
-    tf.assert_equal(sum, 0)
-]
-
-tf.test("single element") [
-    new arr = [42]
-    new sum = sum_array(arr)
-    tf.assert_equal(sum, 42)
-]
-
-tf.test("large array") [
-    new arr = create_array(10000)
-    new sum = sum_array(arr)
-    tf.assert_greater(sum, 0)
-]
-```
-
-## 10.6 Safety Checklist
+## 10.5 Safety Checklist
 
 Check before submitting code:
 
@@ -468,7 +418,7 @@ Check before submitting code:
 - [ ] unsafe blocks have adequate comments
 - [ ] Sensitive data is handled properly
 
-## 10.7 Comprehensive Examples
+## 10.6 Comprehensive Examples
 
 ### Complete Project Structure
 
@@ -584,7 +534,7 @@ fn reduce(arr: [T], initial: U, fn: fn(U, T) -> U) -> U [
 ]
 ```
 
-## 10.8 Exercises
+## 10.7 Exercises
 
 1. Refactor the following code to follow best practices:
 

@@ -114,32 +114,11 @@ target\release\catlang.exe --version
 ./target/release/catlang --version
 ```
 
-## 0.3 下载预编译版本
-
-如果不想自己编译，可以下载预编译的 CatLang 编译器。
-
-### 发布版本（暂时不可用）
-
-访问项目的 Releases 页面下载对应平台的预编译版本：
-
-```
-N/A
-```
-
-### 解压和使用
-
-```bash
-# Windows - 解压后直接运行 catlang.exe
-# macOS/Linux - 可能需要添加执行权限
-chmod +x catlang
-```
-
 ## 0.4 配置编辑器（可选）
 
-### VS Code 配置 (暂时不可用)
+### VS Code 配置
 
-1. 安装 CatLang 语言支持插件（如果有）
-2. 创建 `.vscode/settings.json`：
+1. 创建 `.vscode/settings.json`：
 
 ```json
 {
@@ -150,7 +129,7 @@ chmod +x catlang
 }
 ```
 
-3. 创建任务配置文件 `.vscode/tasks.json`：(此内容可用)
+2. 创建任务配置文件 `.vscode/tasks.json`：
 
 ```json
 {
