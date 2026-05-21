@@ -9,20 +9,22 @@ pub mod lexer;
 pub mod optimizer;
 pub mod parrot;
 pub mod parser;
+pub mod sandbox;
 pub mod token;
 
-pub use codegen::{generate_zig, CodeGenError, CodeGenResult};
+pub use codegen::{generate_zig, generate_zig_with_sandbox, CodeGenError, CodeGenResult};
 pub use lexer::{tokenize, LexError, LexResult};
 pub use optimizer::Optimizer;
 pub use parser::{parse, parse_source, ParseError, ParseResult};
+pub use sandbox::SandboxConfig;
 
 /// Compile CatLang source code to Zig source code
 pub fn compile(source: &str) -> Result<String, CompileError> {
-    compile_with_opts(source, 2)
+    compile_with_opts(source, 2, None)
 }
 
 /// Compile CatLang source code to Zig source code with optimization level
-pub fn compile_with_opts(source: &str, opt_level: u8) -> Result<String, CompileError> {
+pub fn compile_with_opts(source: &str, opt_level: u8, sandbox: Option<SandboxConfig>) -> Result<String, CompileError> {
     // Tokenize
     let tokens = tokenize(source).map_err(|e| CompileError::Lexical(e.to_string()))?;
 
@@ -37,7 +39,7 @@ pub fn compile_with_opts(source: &str, opt_level: u8) -> Result<String, CompileE
 
     // Generate Zig code
     let zig_code =
-        generate_zig(&program).map_err(|e| CompileError::CodeGeneration(e.to_string()))?;
+        generate_zig_with_sandbox(&program, sandbox).map_err(|e| CompileError::CodeGeneration(e.to_string()))?;
 
     Ok(zig_code)
 }
@@ -88,7 +90,7 @@ fn main() [
     return x
 ]
 "#;
-        let result = compile_with_opts(source, 2);
+        let result = compile_with_opts(source, 2, None);
         assert!(result.is_ok(), "Compile failed: {:?}", result.err());
     }
 
@@ -100,7 +102,7 @@ fn main() [
     return x
 ]
 "#;
-        let result = compile_with_opts(source, 0);
+        let result = compile_with_opts(source, 0, None);
         assert!(result.is_ok(), "Compile failed: {:?}", result.err());
     }
 
@@ -508,7 +510,7 @@ fn test() [
     return x
 ]
 "#;
-        let result = compile_with_opts(source, 2);
+        let result = compile_with_opts(source, 2, None);
         assert!(result.is_ok(), "Compile failed: {:?}", result.err());
         let zig_code = result.unwrap();
         // The optimized code should have the constant folded

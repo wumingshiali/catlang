@@ -18,6 +18,10 @@ pub struct ParrotConfig {
     pub dependencies: std::collections::HashMap<String, String>,
     #[serde(default, rename = "dev-dependencies")]
     pub dev_dependencies: std::collections::HashMap<String, String>,
+    #[serde(default, rename = "SandboxPath")]
+    pub sandbox_path: Option<String>,
+    #[serde(default, rename = "SandboxFlag")]
+    pub sandbox_flag: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

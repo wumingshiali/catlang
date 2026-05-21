@@ -18,6 +18,7 @@ use std::process::Command;
 
 use catlang::compile_with_opts;
 use catlang::parrot;
+use catlang::sandbox::SandboxConfig;
 
 #[derive(Parser, Debug)]
 #[command(name = "catc")]
@@ -115,6 +116,8 @@ fn compile_file(input: &str, opt_level: u8, release: bool) {
         }
     };
 
+    let sandbox_config = load_sandbox_config(input_path);
+
     let output_name = input_path
         .file_stem()
         .and_then(|s| s.to_str())
@@ -142,7 +145,7 @@ fn compile_file(input: &str, opt_level: u8, release: bool) {
         input, opt_level
     );
 
-    let zig_code = match compile_with_opts(&source, opt_level) {
+    let zig_code = match compile_with_opts(&source, opt_level, sandbox_config) {
         Ok(code) => code,
         Err(e) => {
             eprintln!("Compilation failed: {}", e);
@@ -194,6 +197,27 @@ fn compile_file(input: &str, opt_level: u8, release: bool) {
 
     let _ = fs::remove_file(&zig_file);
     eprintln!("[catc] Successfully created '{}'", output_exe);
+}
+
+fn load_sandbox_config(source_path: &Path) -> Option<SandboxConfig> {
+    match parrot::find_config(source_path) {
+        Ok(config_path) => {
+            match parrot::parse_config(&config_path) {
+                Ok(config) => {
+                    let sandbox = SandboxConfig::from_parrot_config(&config, &config_path);
+                    if sandbox.enabled {
+                        eprintln!("[sandbox] Enabled, allowed paths:");
+                        for p in &sandbox.allowed_paths {
+                            eprintln!("[sandbox]   {}", p.display());
+                        }
+                    }
+                    Some(sandbox)
+                }
+                Err(_) => None,
+            }
+        }
+        Err(_) => None,
+    }
 }
 
 fn handle_parrot_action(action: ParrotAction) {
