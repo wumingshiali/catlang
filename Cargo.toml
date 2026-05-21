@@ -9,6 +9,9 @@ clap = { version = "4.4", features = ["derive"] }
 codespan-reporting = "0.11"
 toml = "0.8"
 serde = { version = "1.0", features = ["derive"] }
+ureq = { version = "2.9", features = ["json"] }
+flate2 = "1.0"
+tar = "0.4"
 
 [dev-dependencies]
 tempfile = "3"

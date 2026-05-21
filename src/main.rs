@@ -241,29 +241,49 @@ fn find_config_or_exit() -> (parrot::ParrotConfig, std::path::PathBuf) {
 }
 
 fn cmd_install() {
-    let (config, config_path) = find_config_or_exit();
+    let (config, _config_path) = find_config_or_exit();
     let global_dir = parrot::global_packages_dir();
 
     eprintln!("[parrot] Installing dependencies...");
 
-    let deps = parrot::resolve_dependencies(&config, &config_path);
-    if deps.is_empty() {
-        eprintln!("[parrot] No dependencies found or installed");
-        return;
-    }
-
-    for dep in &deps {
-        eprintln!("[parrot] {}@{} -> {}", dep.name, dep.version, dep.path.display());
-    }
-
-    // Ensure global packages directory exists
     let _ = fs::create_dir_all(&global_dir);
 
-    eprintln!("[parrot] {} dependencies ready", deps.len());
+    let mut installed = 0;
+    let mut failed = 0;
+
+    for (name, version) in &config.dependencies {
+        let dest = global_dir.join(name);
+
+        if dest.exists() {
+            eprintln!("[parrot] {}@{} already installed, skipping", name, version);
+            installed += 1;
+            continue;
+        }
+
+        eprintln!("[parrot] Installing {}@{}...", name, version);
+        match parrot::fetch_package(name, &dest) {
+            Ok(_) => {
+                installed += 1;
+            }
+            Err(e) => {
+                eprintln!("[parrot] Failed to install {}: {}", name, e);
+                failed += 1;
+                let _ = fs::remove_dir_all(&dest);
+            }
+        }
+    }
+
+    if failed > 0 {
+        eprintln!("[parrot] Installation complete: {} installed, {} failed", installed, failed);
+        std::process::exit(1);
+    } else {
+        eprintln!("[parrot] {} dependencies installed successfully", installed);
+    }
 }
 
 fn cmd_add(name: &str, version: &str) {
     let (mut config, config_path) = find_config_or_exit();
+    let global_dir = parrot::global_packages_dir();
 
     config.dependencies.insert(name.to_string(), version.to_string());
 
@@ -278,6 +298,25 @@ fn cmd_add(name: &str, version: &str) {
     });
 
     eprintln!("[parrot] Added {}@{} to dependencies", name, version);
+
+    let dest = global_dir.join(name);
+    if dest.exists() {
+        eprintln!("[parrot] {}@{} already installed, skipping download", name, version);
+        return;
+    }
+
+    eprintln!("[parrot] Fetching {}@{}...", name, version);
+    let _ = fs::create_dir_all(&global_dir);
+    match parrot::fetch_package(name, &dest) {
+        Ok(_) => {
+            eprintln!("[parrot] Successfully installed {}@{}", name, version);
+        }
+        Err(e) => {
+            eprintln!("[parrot] Failed to fetch {}: {}", name, e);
+            let _ = fs::remove_dir_all(&dest);
+            std::process::exit(1);
+        }
+    }
 }
 
 fn cmd_remove(name: &str) {
