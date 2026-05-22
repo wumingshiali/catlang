@@ -268,6 +268,11 @@ impl Optimizer {
 
                     new_statements.push(Stmt::UnsafeBlock(unsafe_block));
                 }
+                Stmt::UnsandboxBlock(mut unsandbox_block) => {
+                    // Unsandbox block doesn't affect constants/mutability
+                    self.optimize_block(&mut unsandbox_block.body);
+                    new_statements.push(Stmt::UnsandboxBlock(unsandbox_block));
+                }
             }
         }
 

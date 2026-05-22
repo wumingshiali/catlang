@@ -84,7 +84,7 @@ impl SandboxConfig {
 
         let mut code = String::new();
         code.push_str("// Sandbox initialization\n");
-        code.push_str(&format!("const SANDBOX_ENABLED = true;\n"));
+        code.push_str(&format!("var SANDBOX_ENABLED = true;\n"));
 
         if self.allowed_paths.is_empty() {
             code.push_str("var sandbox_allowed_paths: [0][]const u8 = .{};\n");

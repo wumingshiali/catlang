@@ -105,6 +105,7 @@ pub enum Stmt {
     AsyncStmt(AsyncStmt),
     Block(Block),
     UnsafeBlock(UnsafeBlock),
+    UnsandboxBlock(UnsandboxBlock),
     Expr(Expr),
     Return(ReturnStmt),
 }
@@ -263,6 +264,13 @@ pub enum AsyncStmt {
 #[derive(Debug, Clone)]
 pub struct UnsafeBlock {
     pub scope_modifier: ScopeModifier,
+    pub body: Block,
+    pub span: Span,
+}
+
+/// Unsandbox block - disables sandbox checks inside
+#[derive(Debug, Clone)]
+pub struct UnsandboxBlock {
     pub body: Block,
     pub span: Span,
 }

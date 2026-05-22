@@ -125,6 +125,9 @@ impl ZigCodeGen {
                     Stmt::UnsafeBlock(unsafe_block) => {
                         collect_mutations(&unsafe_block.body, mutated_vars);
                     }
+                    Stmt::UnsandboxBlock(unsandbox_block) => {
+                        collect_mutations(&unsandbox_block.body, mutated_vars);
+                    }
                     Stmt::Try(try_stmt) => {
                         collect_mutations(&try_stmt.try_block, mutated_vars);
                         for catch_clause in &try_stmt.catch_clauses {
@@ -251,6 +254,9 @@ impl ZigCodeGen {
             }
             Stmt::UnsafeBlock(unsafe_block) => {
                 self.scan_block(&unsafe_block.body);
+            }
+            Stmt::UnsandboxBlock(unsandbox_block) => {
+                self.scan_block(&unsandbox_block.body);
             }
             Stmt::Throw(throw_stmt) => {
                 self.scan_expression(&throw_stmt.expr);
@@ -1208,6 +1214,7 @@ impl ZigCodeGen {
             Stmt::AsyncStmt(async_stmt) => self.generate_async_stmt(async_stmt)?,
             Stmt::Block(block) => self.generate_block(block)?,
             Stmt::UnsafeBlock(unsafe_block) => self.generate_unsafe_block(unsafe_block)?,
+            Stmt::UnsandboxBlock(unsandbox_block) => self.generate_unsandbox_block(unsandbox_block)?,
             Stmt::Expr(expr) => {
                 // Check if this is an input() call with variable argument
                 // If so, generate assignment instead of expression statement
@@ -1545,6 +1552,21 @@ impl ZigCodeGen {
         };
         self.writeln(&format!("// unsafe {} {{", modifier_str));
         self.generate_block(&unsafe_block.body)?;
+        Ok(())
+    }
+
+    fn generate_unsandbox_block(&mut self, unsandbox_block: &UnsandboxBlock) -> CodeGenResult<()> {
+        let sandbox_enabled = self.sandbox.as_ref().map(|s| s.enabled).unwrap_or(false);
+        if sandbox_enabled {
+            self.writeln("// unsandbox - disable sandbox checks");
+            self.writeln("const prev_sandbox_flag = SANDBOX_ENABLED;");
+            self.writeln("SANDBOX_ENABLED = false;");
+            self.generate_block(&unsandbox_block.body)?;
+            self.writeln("SANDBOX_ENABLED = prev_sandbox_flag;");
+        } else {
+            self.writeln("// unsandbox - sandbox not enabled");
+            self.generate_block(&unsandbox_block.body)?;
+        }
         Ok(())
     }
 

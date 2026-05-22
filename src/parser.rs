@@ -48,6 +48,7 @@ impl Parser {
             ("new", TokenKind::KwNew),
             ("cpy", TokenKind::KwCpy),
             ("unsafe", TokenKind::KwUnsafe),
+            ("unsandbox", TokenKind::KwUnsandbox),
             ("close", TokenKind::KwClose),
             ("keep", TokenKind::KwKeep),
             ("all", TokenKind::KwAll),
@@ -664,6 +665,10 @@ impl Parser {
                 let unsafe_block = self.parse_unsafe_block()?;
                 Ok(Stmt::UnsafeBlock(unsafe_block))
             }
+            TokenKind::KwUnsandbox => {
+                let unsandbox_block = self.parse_unsandbox_block()?;
+                Ok(Stmt::UnsandboxBlock(unsandbox_block))
+            }
             TokenKind::KwIf => {
                 let if_stmt = self.parse_if_stmt()?;
                 Ok(Stmt::If(if_stmt))
@@ -893,6 +898,13 @@ impl Parser {
         let body = self.parse_block()?;
         
         Ok(UnsafeBlock { scope_modifier, body, span })
+    }
+
+    fn parse_unsandbox_block(&mut self) -> ParseResult<UnsandboxBlock> {
+        let span = self.peek().span;
+        self.advance(); // consume 'unsandbox'
+        let body = self.parse_block()?;
+        Ok(UnsandboxBlock { body, span })
     }
 
     fn parse_scope_modifier(&mut self) -> ParseResult<ScopeModifier> {

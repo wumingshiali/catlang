@@ -310,6 +310,20 @@ fn test() [
     }
 
     #[test]
+    fn test_compile_unsandbox_block() {
+        let source = r#"
+fn test() [
+    unsandbox [
+        new x i32 = 1
+    ]
+    return 0
+]
+"#;
+        let result = compile(source);
+        assert!(result.is_ok(), "Compile failed: {:?}", result.err());
+    }
+
+    #[test]
     fn test_compile_pointer_type() {
         let source = r#"
 fn test() [

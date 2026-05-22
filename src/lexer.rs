@@ -568,6 +568,7 @@ impl<'a> Lexer<'a> {
             "new" => TokenKind::KwNew,
             "cpy" => TokenKind::KwCpy,
             "unsafe" => TokenKind::KwUnsafe,
+            "unsandbox" => TokenKind::KwUnsandbox,
             "close" => TokenKind::KwClose,
             "keep" => TokenKind::KwKeep,
             "all" => TokenKind::KwAll,
