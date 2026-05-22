@@ -1,3 +1,4 @@
+This project exclusively authorizes its official Codeberg mirror. All other unauthorized mirroring is strictly prohibited.  
 # CatLang Programming Language
 
 <div align="center">
