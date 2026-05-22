@@ -28,7 +28,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build (Release with max optimizations)
-        run: cargo build --release --verbose
+        run: make build
+
+      - name: Run tests
+        run: make test
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

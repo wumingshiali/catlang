@@ -1,4 +1,4 @@
-.PHONY: all build install uninstall clean
+.PHONY: all build test install uninstall clean
 
 BINARY_NAME = catc
 INSTALL_DIR ?= /usr/local/bin
@@ -7,6 +7,9 @@ all: build
 
 build:
 	cargo build --release
+
+test:
+	cargo test
 
 install: build
 	install -d $(DESTDIR)$(INSTALL_DIR)
