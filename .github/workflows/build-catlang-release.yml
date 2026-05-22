@@ -30,9 +30,6 @@ jobs:
       - name: Build (Release with max optimizations)
         run: make build
 
-      - name: Run tests
-        run: make test
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

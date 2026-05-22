@@ -130,38 +130,46 @@ mod tests {
 
     #[test]
     fn test_sandbox_path_allowed_absolute() {
-        let allowed = vec![PathBuf::from("/tmp/sandbox")];
+        let dir = tempfile::tempdir().unwrap();
+        let allowed = vec![dir.path().to_path_buf()];
         let config = SandboxConfig::new(true, allowed);
-        assert!(config.is_path_allowed(Path::new("/tmp/sandbox/file.txt")));
-        assert!(config.is_path_allowed(Path::new("/tmp/sandbox/sub/dir/file.txt")));
+        assert!(config.is_path_allowed(&dir.path().join("file.txt")));
+        assert!(config.is_path_allowed(&dir.path().join("sub").join("dir").join("file.txt")));
     }
 
     #[test]
     fn test_sandbox_path_not_allowed() {
-        let allowed = vec![PathBuf::from("/tmp/sandbox")];
+        let dir = tempfile::tempdir().unwrap();
+        let allowed = vec![dir.path().to_path_buf()];
         let config = SandboxConfig::new(true, allowed);
-        assert!(!config.is_path_allowed(Path::new("/etc/passwd")));
-        assert!(!config.is_path_allowed(Path::new("/home/user/secret.txt")));
+        // Create a different temp dir that is NOT allowed
+        let other_dir = tempfile::tempdir().unwrap();
+        assert!(!config.is_path_allowed(&other_dir.path().join("secret.txt")));
     }
 
     #[test]
     fn test_sandbox_disabled_allows_all() {
-        let allowed = vec![PathBuf::from("/tmp/sandbox")];
+        let dir = tempfile::tempdir().unwrap();
+        let allowed = vec![dir.path().to_path_buf()];
         let config = SandboxConfig::new(false, allowed);
-        assert!(config.is_path_allowed(Path::new("/etc/passwd")));
-        assert!(config.is_path_allowed(Path::new("/tmp/sandbox/file.txt")));
+        let other_dir = tempfile::tempdir().unwrap();
+        assert!(config.is_path_allowed(&other_dir.path().join("secret.txt")));
+        assert!(config.is_path_allowed(&dir.path().join("file.txt")));
     }
 
     #[test]
     fn test_sandbox_multiple_paths() {
+        let dir1 = tempfile::tempdir().unwrap();
+        let dir2 = tempfile::tempdir().unwrap();
+        let other_dir = tempfile::tempdir().unwrap();
         let allowed = vec![
-            PathBuf::from("/tmp/sandbox"),
-            PathBuf::from("/var/data"),
+            dir1.path().to_path_buf(),
+            dir2.path().to_path_buf(),
         ];
         let config = SandboxConfig::new(true, allowed);
-        assert!(config.is_path_allowed(Path::new("/tmp/sandbox/file.txt")));
-        assert!(config.is_path_allowed(Path::new("/var/data/file.txt")));
-        assert!(!config.is_path_allowed(Path::new("/etc/passwd")));
+        assert!(config.is_path_allowed(&dir1.path().join("file.txt")));
+        assert!(config.is_path_allowed(&dir2.path().join("file.txt")));
+        assert!(!config.is_path_allowed(&other_dir.path().join("secret.txt")));
     }
 
     #[test]
