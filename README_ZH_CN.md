@@ -1,3 +1,4 @@
+此项目只允许 Codeberg 的官方镜像，不允许其他未经授权镜像。  
 # CatLang 编程语言
 
 <div align="center">
