@@ -57,9 +57,10 @@ Verify the installation:
 zig version
 ```
 
-## 0.2 Compile the CatLang Compiler
+## 0.2 Install the CatLang Compiler
 
 You can get lastet stable catlang from release or you can build nightly version in your computer.
+Then,you must add catc.exe to PATH.
 
 ## 0.4 Configure Editor (Optional)
 
@@ -107,11 +108,7 @@ Create test file `test.cat`:
 Run the test:
 
 ```bash
-# Windows
-target\release\catlang.exe test.cat
-
-# macOS/Linux
-./target/release/catlang test.cat
+catc test.cat
 ```
 
 If it outputs `Environment setup successful!`, the environment is configured.
