@@ -59,60 +59,7 @@ zig version
 
 ## 0.2 Compile the CatLang Compiler
 
-The CatLang compiler is written in Rust and requires the Rust toolchain to compile.
-
-### Install Rust
-
-Visit https://rustup.rs/ to download and install Rust:
-
-```bash
-# Windows (PowerShell)
-winget install Rustlang.Rustup
-
-# macOS/Linux
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-### Compile CatLang
-
-1. Clone or download the CatLang project
-
-```bash
-git clone https://github.com/your-org/catlang.git
-cd catlang
-```
-
-2. Compile using Cargo
-
-```bash
-# Development version
-cargo build
-
-# Release version (optimized)
-cargo build --release
-```
-
-3. Build output location
-
-```
-# Windows
-target\debug\catlang.exe      # Development version
-target\release\catlang.exe    # Release version
-
-# macOS/Linux
-target/debug/catlang          # Development version
-target/release/catlang        # Release version
-```
-
-4. Verify the compiler
-
-```bash
-# Windows
-target\release\catlang.exe --version
-
-# macOS/Linux
-./target/release/catlang --version
-```
+You can get lastet stable catlang from release or you can build nightly version in your computer.
 
 ## 0.4 Configure Editor (Optional)
 
