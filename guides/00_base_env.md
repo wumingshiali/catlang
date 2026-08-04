@@ -60,7 +60,7 @@ zig version
 ## 0.2 Install the CatLang Compiler
 
 You can get lastet stable catlang from release or you can build nightly version in your computer.
-Then,you must add catc.exe to PATH.
+Then,you must add catc to PATH.
 
 ## 0.4 Configure Editor (Optional)
 
@@ -73,7 +73,7 @@ Then,you must add catc.exe to PATH.
     "files.associations": {
         "*.cat": "catlang"
     },
-    "catlang.compilerPath": "./target/release/catlang.exe"
+    "catlang.compilerPath": "catc"
 }
 ```
 
@@ -86,7 +86,7 @@ Then,you must add catc.exe to PATH.
         {
             "label": "Run CatLang",
             "type": "shell",
-            "command": "./target/release/catlang.exe ${file}",
+            "command": "catc ${file}",
             "group": "build",
             "problemMatcher": []
         }
