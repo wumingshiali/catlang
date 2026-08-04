@@ -57,9 +57,10 @@ sudo cp zig /usr/local/bin/
 zig version
 ```
 
-## 0.2 编译 CatLang 编译器
+## 0.2 安装 CatLang 编译器
 
 你可以直接从Releases界面下载最新的稳定版本，也可以自己在电脑上构建测试版。
+然后，请你把它放入环境变量。
 
 ## 0.4 配置编辑器（可选）
 
@@ -72,7 +73,7 @@ zig version
     "files.associations": {
         "*.cat": "catlang"
     },
-    "catlang.compilerPath": "./target/release/catlang.exe"
+    "catlang.compilerPath": "catc"
 }
 ```
 
@@ -85,7 +86,7 @@ zig version
         {
             "label": "运行 CatLang",
             "type": "shell",
-            "command": "./target/release/catlang.exe ${file}",
+            "command": "catc ${file}",
             "group": "build",
             "problemMatcher": []
         }
@@ -107,11 +108,7 @@ zig version
 运行测试：
 
 ```bash
-# Windows
-target\release\catlang.exe test.cat
-
-# macOS/Linux
-./target/release/catlang test.cat
+catc test.cat
 ```
 
 如果输出 `环境配置成功！`，则环境配置完成。
