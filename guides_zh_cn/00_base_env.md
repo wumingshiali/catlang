@@ -59,60 +59,7 @@ zig version
 
 ## 0.2 编译 CatLang 编译器
 
-CatLang 编译器使用 Rust 编写，需要 Rust 工具链来编译。
-
-### 安装 Rust
-
-访问 https://rustup.rs/ 下载并安装 Rust：
-
-```bash
-# Windows (PowerShell)
-winget install Rustlang.Rustup
-
-# macOS/Linux
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-### 编译 CatLang
-
-1. 克隆或下载 CatLang 项目
-
-```bash
-git clone https://github.com/your-org/catlang.git
-cd catlang
-```
-
-2. 使用 Cargo 编译
-
-```bash
-# 开发版本
-cargo build
-
-# 发布版本（优化）
-cargo build --release
-```
-
-3. 编译产物位置
-
-```
-# Windows
-target\debug\catlang.exe      # 开发版本
-target\release\catlang.exe    # 发布版本
-
-# macOS/Linux
-target/debug/catlang          # 开发版本
-target/release/catlang        # 发布版本
-```
-
-4. 验证编译器
-
-```bash
-# Windows
-target\release\catlang.exe --version
-
-# macOS/Linux
-./target/release/catlang --version
-```
+你可以直接从Releases界面下载最新的稳定版本，也可以自己在电脑上构建测试版。
 
 ## 0.4 配置编辑器（可选）
 
