@@ -34,7 +34,7 @@
 
 ```bash
 # 运行 CatLang 程序
-./target/release/catlang hello.cat
+catc hello.cat
 ```
 
 ## 1.4 程序结构解析
